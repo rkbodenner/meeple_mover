@@ -4,7 +4,7 @@ import (
   "encoding/json"
   "fmt"
   "net/http"
-  "github.com/rkbodenner/parallel_universe/game"
+  "github.com/rkbodenner/parallel_universe/collection"
 )
 
 type Player struct {
@@ -25,6 +25,13 @@ func corsHandler(h http.Handler) http.Handler {
   })
 }
 
+func collectionHandler(w http.ResponseWriter, r *http.Request) {
+  err := json.NewEncoder(w).Encode(collection.NewCollection())
+  if ( nil != err ) {
+    fmt.Fprintln(w, err)
+  }
+}
+
 func playersHandler(w http.ResponseWriter, r *http.Request) {
   err := json.NewEncoder(w).Encode(players)
   if ( nil != err ) {
@@ -32,16 +39,8 @@ func playersHandler(w http.ResponseWriter, r *http.Request) {
   }
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-  game := game.NewGame(nil, 2)
-  err := json.NewEncoder(w).Encode(game)
-  if ( nil != err ) {
-    fmt.Fprintln(w, err)
-  }
-}
-
 func main() {
-  http.Handle("/", corsHandler(http.HandlerFunc(handler)))
+  http.Handle("/collection", corsHandler(http.HandlerFunc(collectionHandler)))
   http.Handle("/players", corsHandler(http.HandlerFunc(playersHandler)))
   http.ListenAndServe(":8080", nil)
 }
