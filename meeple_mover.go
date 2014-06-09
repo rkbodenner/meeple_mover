@@ -26,7 +26,13 @@ func corsHandler(h http.Handler) http.Handler {
 }
 
 func collectionHandler(w http.ResponseWriter, r *http.Request) {
-  err := json.NewEncoder(w).Encode(collection.NewCollection())
+  collection := collection.NewCollection()
+  var i uint = 1
+  for _,game := range collection.Games {
+    game.Id = i
+    i++
+  }
+  err := json.NewEncoder(w).Encode(collection)
   if ( nil != err ) {
     fmt.Fprintln(w, err)
   }
