@@ -4,7 +4,9 @@ import (
   "encoding/json"
   "fmt"
   "net/http"
+  "os"
   "github.com/rkbodenner/parallel_universe/collection"
+  "source.datanerd.us/ralph/go_agent"
 )
 
 type Player struct {
@@ -46,7 +48,9 @@ func playersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-  http.HandleFunc("/collection", corsHandler(collectionHandler))
-  http.HandleFunc("/players", corsHandler(playersHandler))
+  go_agent.StartAgent(os.Getenv("NEW_RELIC_LICENSE_KEY"), "meeple_mover")
+
+  http.HandleFunc("/collection", go_agent.InstrumentHttpHandler("/collection", corsHandler(collectionHandler)))
+  http.HandleFunc("/players", go_agent.InstrumentHttpHandler("/players", corsHandler(playersHandler)))
   http.ListenAndServe(":8080", nil)
 }
