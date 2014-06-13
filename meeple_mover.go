@@ -17,12 +17,12 @@ var players = []Player{
   {2, "Player Two"},
 }
 
-func corsHandler(h http.Handler) http.Handler {
-  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func corsHandler(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+  return func(w http.ResponseWriter, r *http.Request) {
     header := w.Header()
     header.Add("Access-Control-Allow-Origin", "http://localhost:8000")
-    h.ServeHTTP(w, r)
-  })
+    handler(w, r)
+  }
 }
 
 func collectionHandler(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +46,7 @@ func playersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-  http.Handle("/collection", corsHandler(http.HandlerFunc(collectionHandler)))
-  http.Handle("/players", corsHandler(http.HandlerFunc(playersHandler)))
+  http.HandleFunc("/collection", corsHandler(collectionHandler))
+  http.HandleFunc("/players", corsHandler(playersHandler))
   http.ListenAndServe(":8080", nil)
 }
