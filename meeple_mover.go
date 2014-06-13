@@ -4,7 +4,10 @@ import (
   "encoding/json"
   "fmt"
   "net/http"
+  "strconv"
+  "github.com/rcrowley/go-tigertonic"
   "github.com/rkbodenner/parallel_universe/collection"
+  "github.com/rkbodenner/parallel_universe/session"
 )
 
 type Player struct {
@@ -16,6 +19,8 @@ var players = []Player{
   {1, "Player One"},
   {2, "Player Two"},
 }
+
+var sessions = make(map[uint64]*session.Session)
 
 func corsHandler(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
   return func(w http.ResponseWriter, r *http.Request) {
@@ -45,8 +50,31 @@ func playersHandler(w http.ResponseWriter, r *http.Request) {
   }
 }
 
+func sessionHandler(w http.ResponseWriter, r *http.Request) {
+  id_str := r.URL.Query().Get("id")
+  id, err := strconv.ParseUint(id_str, 10, 64)
+  if nil != err {
+    http.Error(w, "Not found", http.StatusNotFound)
+    return
+  }
+
+  session, ok := sessions[id]
+  if ok {
+    err := json.NewEncoder(w).Encode(session)
+    if ( nil != err ) {
+      http.Error(w, "Error", http.StatusInternalServerError)
+    }
+  } else {
+    http.Error(w, "Not found", http.StatusNotFound)
+  }
+}
+
 func main() {
-  http.HandleFunc("/collection", corsHandler(collectionHandler))
-  http.HandleFunc("/players", corsHandler(playersHandler))
-  http.ListenAndServe(":8080", nil)
+  sessions[1] = session.NewSession(collection.NewForbiddenIsland(), 2)
+
+  mux := tigertonic.NewTrieServeMux()
+  mux.HandleFunc("GET", "/collection", corsHandler(collectionHandler))
+  mux.HandleFunc("GET", "/players", corsHandler(playersHandler))
+  mux.HandleFunc("GET", "/sessions/{id}", sessionHandler)
+  http.ListenAndServe(":8080", mux)
 }
