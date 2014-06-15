@@ -11,14 +11,9 @@ import (
   "github.com/rkbodenner/parallel_universe/session"
 )
 
-type Player struct {
-  Id int `json:"id"`
-  Name string `json:"name"`
-}
-
-var players = []Player{
-  {1, "Player One"},
-  {2, "Player Two"},
+var players = []*game.Player{
+  &game.Player{1, "Player One"},
+  &game.Player{2, "Player Two"},
 }
 
 var gameCollection = collection.NewCollection()
