@@ -31,8 +31,13 @@ var sessionIndex = make(map[uint64]*session.Session)
 
 func initSessionData() {
   sessions = make([]*session.Session, 2)
-  sessions[0] = session.NewSession(gameCollection.Games[0], 2)
-  sessions[1] = session.NewSession(gameCollection.Games[1], 2)
+  sessions[0] = session.NewSession(gameCollection.Games[0], players)
+  sessions[0].Step(players[0])
+  sessions[0].Step(players[1])
+
+  sessions[1] = session.NewSession(gameCollection.Games[1], players)
+  sessions[1].Step(players[0])
+  sessions[1].Step(players[1])
 
   for i,session := range sessions {
     session.Id = (uint)(i+1)
