@@ -4,6 +4,7 @@ import (
   "encoding/json"
   "fmt"
   "net/http"
+  "net/url"
   "strconv"
   "github.com/rcrowley/go-tigertonic"
   "github.com/rkbodenner/parallel_universe/collection"
@@ -53,14 +54,16 @@ func corsHandler(handler func(http.ResponseWriter, *http.Request)) func(http.Res
   }
 }
 
-func collectionHandler(w http.ResponseWriter, r *http.Request) {
+type CollectionHandler struct{}
+func (h CollectionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   err := json.NewEncoder(w).Encode(gameCollection)
   if ( nil != err ) {
     fmt.Fprintln(w, err)
   }
 }
 
-func gameHandler(w http.ResponseWriter, r *http.Request) {
+type GameHandler struct{}
+func (h GameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   id_str := r.URL.Query().Get("id")
   id, err := strconv.ParseUint(id_str, 10, 64)
   if nil != err {
@@ -79,21 +82,24 @@ func gameHandler(w http.ResponseWriter, r *http.Request) {
   }
 }
 
-func playersHandler(w http.ResponseWriter, r *http.Request) {
+type PlayersHandler struct{}
+func (h PlayersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   err := json.NewEncoder(w).Encode(players)
   if ( nil != err ) {
     fmt.Fprintln(w, err)
   }
 }
 
-func sessionsHandler(w http.ResponseWriter, r *http.Request) {
+type SessionsHandler struct{}
+func (h SessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   err := json.NewEncoder(w).Encode(sessions)
   if ( nil != err ) {
     http.Error(w, "Error", http.StatusInternalServerError)
   }
 }
 
-func sessionHandler(w http.ResponseWriter, r *http.Request) {
+type SessionHandler struct{}
+func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   id_str := r.URL.Query().Get("id")
   id, err := strconv.ParseUint(id_str, 10, 64)
   if nil != err {
@@ -112,15 +118,36 @@ func sessionHandler(w http.ResponseWriter, r *http.Request) {
   }
 }
 
+type StepHandler struct{}
+func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+  session_id_str := r.URL.Query().Get("session_id")
+  session_id, err := strconv.ParseUint(session_id_str, 10, 64)
+  if nil != err {
+    http.Error(w, "Not found", http.StatusNotFound)
+    return
+  }
+
+  step_desc,err := url.QueryUnescape(r.URL.Query().Get("step_desc"))
+  for _,step := range sessionIndex[session_id].SetupSteps {
+    if ( step.GetRule().Description == step_desc ) {
+      step.Finish()  // FIXME. Should look in request data to see what to change.
+      return
+    }
+  }
+  http.Error(w, "Not found", http.StatusNotFound)
+}
+
 func main() {
   initGameData()
   initSessionData()
 
   mux := tigertonic.NewTrieServeMux()
-  mux.HandleFunc("GET", "/games", corsHandler(collectionHandler))
-  mux.HandleFunc("GET", "/games/{id}", corsHandler(gameHandler))
-  mux.HandleFunc("GET", "/players", corsHandler(playersHandler))
-  mux.HandleFunc("GET", "/sessions", corsHandler(sessionsHandler))
-  mux.HandleFunc("GET", "/sessions/{id}", corsHandler(sessionHandler))
+  cors := tigertonic.NewCORSBuilder().AddAllowedOrigins("http://localhost:8000")
+  mux.Handle("GET", "/games", cors.Build(CollectionHandler{}))
+  mux.Handle("GET", "/games/{id}", cors.Build(GameHandler{}))
+  mux.Handle("GET", "/players", cors.Build(PlayersHandler{}))
+  mux.Handle("GET", "/sessions", cors.Build(SessionsHandler{}))
+  mux.Handle("GET", "/sessions/{id}", cors.Build(SessionHandler{}))
+  mux.Handle("PUT", "/sessions/{session_id}/steps/{step_desc}", cors.Build(StepHandler{}))
   http.ListenAndServe(":8080", mux)
 }
