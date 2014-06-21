@@ -5,6 +5,7 @@ import (
   "fmt"
   "net/http"
   "net/url"
+  "os"
   "strconv"
   "github.com/rcrowley/go-tigertonic"
   "github.com/rkbodenner/parallel_universe/collection"
@@ -197,5 +198,12 @@ func main() {
   mux.Handle("GET", "/sessions", cors.Build(SessionsHandler{}))
   mux.Handle("GET", "/sessions/{session_id}", cors.Build(SessionHandler{}))
   mux.Handle("PUT", "/sessions/{session_id}/players/{player_id}/steps/{step_desc}", cors.Build(StepHandler{}))
-  http.ListenAndServe(":8080", mux)
+
+  var port string
+  port = os.Getenv("PORT")
+  if "" == port {
+    port = "8080"
+  }
+
+  http.ListenAndServe(fmt.Sprintf(":%s", port), mux)
 }
