@@ -54,13 +54,6 @@ func initSessionData() {
   }
 }
 
-func corsHandler(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-  return func(w http.ResponseWriter, r *http.Request) {
-    header := w.Header()
-    header.Add("Access-Control-Allow-Origin", "http://localhost:8000")
-    handler(w, r)
-  }
-}
 
 type CollectionHandler struct{}
 func (h CollectionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -189,8 +182,14 @@ func main() {
   initGameData()
   initSessionData()
 
+  var origin string
+  origin = os.Getenv("MEEPLE_MOVER_ORIGIN_URL")
+  if "" == origin {
+    origin = "http://localhost:8000"
+  }
+  cors := tigertonic.NewCORSBuilder().AddAllowedOrigins(origin)
+
   mux := tigertonic.NewTrieServeMux()
-  cors := tigertonic.NewCORSBuilder().AddAllowedOrigins("http://localhost:8000")
   mux.Handle("GET", "/games", cors.Build(CollectionHandler{}))
   mux.Handle("GET", "/games/{id}", cors.Build(GameHandler{}))
   mux.Handle("GET", "/players", cors.Build(PlayersHandler{}))
