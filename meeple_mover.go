@@ -16,6 +16,13 @@ var players = []*game.Player{
   &game.Player{1, "Player One"},
   &game.Player{2, "Player Two"},
 }
+var playerIndex = make(map[uint64]*game.Player)
+
+func initPlayerData() {
+  for _,player := range players {
+    playerIndex[(uint64)(player.Id)] = player
+  }
+}
 
 var gameCollection = collection.NewCollection()
 var gameIndex = make(map[uint64]*game.Game)
@@ -90,6 +97,26 @@ func (h PlayersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   }
 }
 
+type PlayerHandler struct{}
+func (h PlayerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+  player_id_str := r.URL.Query().Get("player_id")
+  player_id, err := strconv.ParseUint(player_id_str, 10, 64)
+  if nil != err {
+    http.Error(w, "Not found", http.StatusNotFound)
+    return
+  }
+
+  player, ok := playerIndex[player_id]
+  if ok {
+    err = json.NewEncoder(w).Encode(player)
+    if ( nil != err ) {
+      http.Error(w, "Error", http.StatusInternalServerError)
+    }
+  } else {
+    http.Error(w, "Not found", http.StatusNotFound)
+  }
+}
+
 type SessionsHandler struct{}
 func (h SessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   err := json.NewEncoder(w).Encode(sessions)
@@ -138,6 +165,7 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+  initPlayerData()
   initGameData()
   initSessionData()
 
@@ -146,6 +174,7 @@ func main() {
   mux.Handle("GET", "/games", cors.Build(CollectionHandler{}))
   mux.Handle("GET", "/games/{id}", cors.Build(GameHandler{}))
   mux.Handle("GET", "/players", cors.Build(PlayersHandler{}))
+  mux.Handle("GET", "/players/{player_id}", cors.Build(PlayerHandler{}))
   mux.Handle("GET", "/sessions", cors.Build(SessionsHandler{}))
   mux.Handle("GET", "/sessions/{id}", cors.Build(SessionHandler{}))
   mux.Handle("PUT", "/sessions/{session_id}/steps/{step_desc}", cors.Build(StepHandler{}))
