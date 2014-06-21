@@ -150,18 +150,37 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   session_id_str := r.URL.Query().Get("session_id")
   session_id, err := strconv.ParseUint(session_id_str, 10, 64)
   if nil != err {
-    http.Error(w, "Not found", http.StatusNotFound)
+    http.Error(w, "Session not found", http.StatusNotFound)
+    return
+  }
+  session,ok := sessionIndex[session_id]
+  if !ok {
+    http.Error(w, "Session not found", http.StatusNotFound)
+    return
+  }
+
+  player_id_str := r.URL.Query().Get("player_id")
+  player_id, err := strconv.ParseUint(player_id_str, 10, 64)
+  if nil != err {
+    http.Error(w, "Player not found", http.StatusNotFound)
+    return
+  }
+  player, ok := playerIndex[player_id]
+  if !ok {
+    http.Error(w, "Player not found", http.StatusNotFound)
     return
   }
 
   step_desc,err := url.QueryUnescape(r.URL.Query().Get("step_desc"))
-  for _,step := range sessionIndex[session_id].SetupSteps {
-    if ( step.GetRule().Description == step_desc ) {
+  for _,step := range session.SetupSteps {
+    if ( step.GetRule().Description == step_desc && step.CanBeOwnedBy(player) ) {
       step.Finish()  // FIXME. Should look in request data to see what to change.
+      session.Step(player)
+      session.Print()  // FIXME
       return
     }
   }
-  http.Error(w, "Not found", http.StatusNotFound)
+  http.Error(w, "Step not found", http.StatusNotFound)
 }
 
 func main() {
@@ -176,7 +195,7 @@ func main() {
   mux.Handle("GET", "/players", cors.Build(PlayersHandler{}))
   mux.Handle("GET", "/players/{player_id}", cors.Build(PlayerHandler{}))
   mux.Handle("GET", "/sessions", cors.Build(SessionsHandler{}))
-  mux.Handle("PUT", "/sessions/{session_id}/steps/{step_desc}", cors.Build(StepHandler{}))
   mux.Handle("GET", "/sessions/{session_id}", cors.Build(SessionHandler{}))
+  mux.Handle("PUT", "/sessions/{session_id}/players/{player_id}/steps/{step_desc}", cors.Build(StepHandler{}))
   http.ListenAndServe(":8080", mux)
 }
