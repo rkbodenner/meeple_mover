@@ -127,7 +127,7 @@ func (h SessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type SessionHandler struct{}
 func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-  id_str := r.URL.Query().Get("id")
+  id_str := r.URL.Query().Get("session_id")
   id, err := strconv.ParseUint(id_str, 10, 64)
   if nil != err {
     http.Error(w, "Not found", http.StatusNotFound)
@@ -176,7 +176,7 @@ func main() {
   mux.Handle("GET", "/players", cors.Build(PlayersHandler{}))
   mux.Handle("GET", "/players/{player_id}", cors.Build(PlayerHandler{}))
   mux.Handle("GET", "/sessions", cors.Build(SessionsHandler{}))
-  mux.Handle("GET", "/sessions/{id}", cors.Build(SessionHandler{}))
   mux.Handle("PUT", "/sessions/{session_id}/steps/{step_desc}", cors.Build(StepHandler{}))
+  mux.Handle("GET", "/sessions/{session_id}", cors.Build(SessionHandler{}))
   http.ListenAndServe(":8080", mux)
 }
