@@ -185,7 +185,7 @@ func main() {
   var origin string
   origin = os.Getenv("MEEPLE_MOVER_ORIGIN_URL")
   if "" == origin {
-    origin = "http://arborealdesign.com"//http://localhost:8000"
+    origin = "http://localhost:8000"
   }
   cors := tigertonic.NewCORSBuilder().AddAllowedOrigins(origin)
 
