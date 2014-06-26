@@ -1,25 +1,38 @@
 package main
 
 import (
+  "database/sql"
   "encoding/json"
   "fmt"
   "net/http"
   "net/url"
   "os"
   "strconv"
+  _ "github.com/lib/pq"
   "github.com/rcrowley/go-tigertonic"
   "github.com/rkbodenner/parallel_universe/collection"
   "github.com/rkbodenner/parallel_universe/game"
   "github.com/rkbodenner/parallel_universe/session"
 )
 
-var players = []*game.Player{
-  &game.Player{1, "Player One"},
-  &game.Player{2, "Player Two"},
-}
+var players = make([]*game.Player, 0)
 var playerIndex = make(map[uint64]*game.Player)
 
-func initPlayerData() {
+func initPlayerData(db *sql.DB) {
+  rows, err := db.Query("SELECT * FROM players")
+  if nil != err {
+    fmt.Print(err)
+  }
+  for rows.Next() {
+    var name string
+    var id int
+    if err := rows.Scan(&id, &name); err != nil {
+      fmt.Print(err)
+    }
+    players = append(players, &game.Player{id, name})
+    fmt.Printf("%s\n", name)
+  }
+
   for _,player := range players {
     playerIndex[(uint64)(player.Id)] = player
   }
@@ -178,7 +191,12 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-  initPlayerData()
+  db, err := sql.Open("postgres", "user=ralph dbname=meeple_mover sslmode=disable")
+  if err != nil {
+    fmt.Print(err)
+  }
+
+  initPlayerData(db)
   initGameData()
   initSessionData()
 
@@ -205,4 +223,6 @@ func main() {
   }
 
   http.ListenAndServe(fmt.Sprintf(":%s", port), mux)
+
+  db.Close()
 }
