@@ -44,6 +44,35 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
+-- Name: games; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE games (
+    id integer NOT NULL,
+    name text
+);
+
+
+--
+-- Name: games_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE games_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: games_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE games_id_seq OWNED BY games.id;
+
+
+--
 -- Name: players; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -73,10 +102,73 @@ ALTER SEQUENCE players_id_seq OWNED BY players.id;
 
 
 --
+-- Name: setup_rule_dependencies; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE setup_rule_dependencies (
+    parent_id integer,
+    child_id integer
+);
+
+
+--
+-- Name: setup_rules; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE setup_rules (
+    id integer NOT NULL,
+    game_id integer,
+    description text,
+    each_player boolean
+);
+
+
+--
+-- Name: setup_rules_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE setup_rules_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: setup_rules_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE setup_rules_id_seq OWNED BY setup_rules.id;
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY games ALTER COLUMN id SET DEFAULT nextval('games_id_seq'::regclass);
+
+
+--
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY players ALTER COLUMN id SET DEFAULT nextval('players_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY setup_rules ALTER COLUMN id SET DEFAULT nextval('setup_rules_id_seq'::regclass);
+
+
+--
+-- Name: games_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY games
+    ADD CONSTRAINT games_pkey PRIMARY KEY (id);
 
 
 --
@@ -85,6 +177,38 @@ ALTER TABLE ONLY players ALTER COLUMN id SET DEFAULT nextval('players_id_seq'::r
 
 ALTER TABLE ONLY players
     ADD CONSTRAINT players_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: setup_rules_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY setup_rules
+    ADD CONSTRAINT setup_rules_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: setup_rule_dependencies_child_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY setup_rule_dependencies
+    ADD CONSTRAINT setup_rule_dependencies_child_id_fkey FOREIGN KEY (child_id) REFERENCES setup_rules(id);
+
+
+--
+-- Name: setup_rule_dependencies_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY setup_rule_dependencies
+    ADD CONSTRAINT setup_rule_dependencies_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES setup_rules(id);
+
+
+--
+-- Name: setup_rules_game_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY setup_rules
+    ADD CONSTRAINT setup_rules_game_id_fkey FOREIGN KEY (game_id) REFERENCES games(id);
 
 
 --
