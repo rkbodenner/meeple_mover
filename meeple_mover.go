@@ -3,6 +3,7 @@ package main
 import (
   "database/sql"
   "encoding/json"
+  "errors"
   "fmt"
   "net/http"
   "net/url"
@@ -132,33 +133,41 @@ func (h SessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   }
 }
 
-type SessionCreateHandler struct{
+
+type SessionCreateHandler struct {
   db *sql.DB
 }
-
-func (h SessionCreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-  if nil != r.ParseForm() {
-    http.Error(w, "Error", http.StatusBadRequest)
-    return
-  }
-
-  game_id_str := r.FormValue("game")
-  game_id, err := strconv.ParseUint(game_id_str, 10, 64)
-  if nil != err {
-    http.Error(w, "Error: Expected integer game ID", http.StatusBadRequest)
-    return
-  }
-
-  var session_id int
-  err = h.db.QueryRow("INSERT INTO sessions(id, game_id) VALUES(default, $1) RETURNING id", game_id).Scan(&session_id)
-  if nil != err {
-    http.Error(w, "Error", http.StatusInternalServerError)
-    return
-  }
-
-  w.WriteHeader(http.StatusCreated)
-  fmt.Fprintf(w, "%d\n", session_id)
+type SessionCreateHash struct {
+  StartedDate string `json:"started_date"`
+  Game string `json:"game"`
+  Players []string `json:"players"`
 }
+type SessionCreateRequest struct {
+  Session SessionCreateHash `json:"session"`
+}
+
+func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *SessionCreateRequest) (int, http.Header, *session.Session, error)) {
+  return func(u *url.URL, h http.Header, rq *SessionCreateRequest) (int, http.Header, *session.Session, error) {
+    var err error
+
+    var game_id uint64
+    game_id, err = strconv.ParseUint(rq.Session.Game, 10, 64)
+    if nil != err {
+      return http.StatusBadRequest, nil, nil, errors.New("Expected integer game ID")
+    }
+
+    var session_id int
+    err = handler.db.QueryRow("INSERT INTO sessions(id, game_id) VALUES(default, $1) RETURNING id", game_id).Scan(&session_id)
+    if nil != err {
+      return http.StatusInternalServerError, nil, nil, errors.New("Failed to create session")
+    }
+    players := make([]*game.Player, 0)
+    session := session.NewSession(gameIndex[game_id], players)
+    session.Id = (uint)(session_id)
+    return http.StatusCreated, nil, session, nil
+  }
+}
+
 
 type SessionHandler struct{}
 func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +242,7 @@ func main() {
   if "" == origin {
     origin = "http://localhost:8000"
   }
-  cors := tigertonic.NewCORSBuilder().AddAllowedOrigins(origin)
+  cors := tigertonic.NewCORSBuilder().AddAllowedOrigins(origin).AddAllowedHeaders("Content-Type")
 
   mux := tigertonic.NewTrieServeMux()
   mux.Handle("GET", "/games", cors.Build(CollectionHandler{}))
@@ -241,7 +250,7 @@ func main() {
   mux.Handle("GET", "/players", cors.Build(PlayersHandler{}))
   mux.Handle("GET", "/players/{player_id}", cors.Build(PlayerHandler{}))
   mux.Handle("GET", "/sessions", cors.Build(SessionsHandler{}))
-  mux.Handle("POST", "/sessions", cors.Build(SessionCreateHandler{db}))
+  mux.Handle("POST", "/sessions", cors.Build(tigertonic.Marshaled(SessionCreateHandler{db}.marshalFunc())))
   mux.Handle("GET", "/sessions/{session_id}", cors.Build(SessionHandler{}))
   mux.Handle("PUT", "/sessions/{session_id}/players/{player_id}/steps/{step_desc}", cors.Build(StepHandler{}))
 
