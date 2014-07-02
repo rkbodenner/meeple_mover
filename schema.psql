@@ -131,6 +131,16 @@ ALTER SEQUENCE sessions_id_seq OWNED BY sessions.id;
 
 
 --
+-- Name: sessions_players; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE sessions_players (
+    session_id integer,
+    player_id integer
+);
+
+
+--
 -- Name: setup_rule_dependencies; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -237,6 +247,22 @@ ALTER TABLE ONLY setup_rules
 
 ALTER TABLE ONLY sessions
     ADD CONSTRAINT sessions_game_id_fkey FOREIGN KEY (game_id) REFERENCES games(id);
+
+
+--
+-- Name: sessions_players_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY sessions_players
+    ADD CONSTRAINT sessions_players_player_id_fkey FOREIGN KEY (player_id) REFERENCES players(id);
+
+
+--
+-- Name: sessions_players_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY sessions_players
+    ADD CONSTRAINT sessions_players_session_id_fkey FOREIGN KEY (session_id) REFERENCES sessions(id);
 
 
 --
