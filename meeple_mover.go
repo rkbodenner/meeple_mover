@@ -155,8 +155,19 @@ func storeSessionPlayerAssociations(db *sql.DB, session_id int, player_ids []int
   return nil
 }
 
-func fetchPlayersById(db *sql.DB, player_ids []int) []*game.Player {
-  return make([]*game.Player, 0)
+func fetchPlayersById(db *sql.DB, playerIds []int) ([]*game.Player, error) {
+  players := make([]*game.Player, len(playerIds))
+
+  for i, playerId := range playerIds {
+    var name string
+    err := db.QueryRow("SELECT name FROM players WHERE id = $1", playerId).Scan(&name)
+    if err != nil {
+       return players, err
+    }
+    players[i] = &game.Player{playerId, name}
+  }
+
+  return players, nil
 }
 
 // Persist a new session
@@ -190,7 +201,11 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
       return http.StatusInternalServerError, nil, nil, err
     }
 
-    players := fetchPlayersById(handler.db, player_ids)
+    var players []*game.Player
+    players, err = fetchPlayersById(handler.db, player_ids)
+    if nil != err {
+      return http.StatusInternalServerError, nil, nil, err
+    }
 
     session := session.NewSession(gameIndex[game_id], players)
     session.Id = (uint)(session_id)
