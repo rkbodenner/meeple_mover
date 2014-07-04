@@ -145,6 +145,16 @@ type SessionCreateRequest struct {
   Session SessionCreateHash `json:"session"`
 }
 
+func storeSessionPlayerAssociations(db *sql.DB, session_id int, player_ids []int) error {
+  for _, player_id := range player_ids {
+    _, err := db.Exec("INSERT INTO sessions_players(session_id, player_id) VALUES($1, $2)", session_id, player_id)
+    if nil != err {
+      return errors.New(fmt.Sprintf("Failed to create session's association with a player: %s", err))
+    }
+  }
+  return nil
+}
+
 // Persist a new session
 func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *SessionCreateRequest) (int, http.Header, *session.Session, error)) {
   return func(u *url.URL, h http.Header, rq *SessionCreateRequest) (int, http.Header, *session.Session, error) {
@@ -164,7 +174,6 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
 
     player_ids := make([]int, 0)
     for _, player_id_str := range rq.Session.Players {
-      fmt.Println(player_id_str)
       player_id, err := strconv.ParseInt(player_id_str, 10, 32)
       if nil != err {
         return http.StatusBadRequest, nil, nil, errors.New("Expected integer player ID")
@@ -172,11 +181,9 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
       player_ids = append(player_ids, (int)(player_id))
     }
 
-    for _, player_id := range player_ids {
-      _, err := handler.db.Exec("INSERT INTO sessions_players(session_id, player_id) VALUES($1, $2)", session_id, player_id)
-      if nil != err {
-        return http.StatusInternalServerError, nil, nil, errors.New(fmt.Sprintf("Failed to create session's association with a player: %s", err))
-      }
+    err = storeSessionPlayerAssociations(handler.db, session_id, player_ids)
+    if nil != err {
+      return http.StatusInternalServerError, nil, nil, err
     }
 
     players := make([]*game.Player, 0)  // No need to return a completely accurate session object yet
