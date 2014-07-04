@@ -155,6 +155,10 @@ func storeSessionPlayerAssociations(db *sql.DB, session_id int, player_ids []int
   return nil
 }
 
+func fetchPlayersById(db *sql.DB, player_ids []int) []*game.Player {
+  return make([]*game.Player, 0)
+}
+
 // Persist a new session
 func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *SessionCreateRequest) (int, http.Header, *session.Session, error)) {
   return func(u *url.URL, h http.Header, rq *SessionCreateRequest) (int, http.Header, *session.Session, error) {
@@ -186,9 +190,13 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
       return http.StatusInternalServerError, nil, nil, err
     }
 
-    players := make([]*game.Player, 0)  // No need to return a completely accurate session object yet
+    players := fetchPlayersById(handler.db, player_ids)
+
     session := session.NewSession(gameIndex[game_id], players)
     session.Id = (uint)(session_id)
+
+    session.Print()
+
     return http.StatusCreated, nil, session, nil
   }
 }
