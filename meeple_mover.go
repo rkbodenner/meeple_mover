@@ -41,11 +41,37 @@ func initPlayerData(db *sql.DB) {
 var gameCollection = collection.NewCollection()
 var gameIndex = make(map[uint64]*game.Game)
 
-func initGameData() {
+func initSetupRuleIds(db *sql.DB, g *game.Game) error {
+  rows, err := db.Query("SELECT id, description FROM setup_rules WHERE game_id = $1", g.Id)
+  if nil != err {
+     return err
+  }
+  for rows.Next() {
+    var id int
+    var description string
+    if err := rows.Scan(&id, &description); nil != err {
+      return err
+    }
+    for _, rule := range g.SetupRules {
+      if rule.Description == description {
+        rule.Id = id
+        break
+      }
+    }
+  }
+  return nil
+}
+
+func initGameData(db *sql.DB) error {
   for i,game := range gameCollection.Games {
     game.Id = (uint)(i+1)
     gameIndex[(uint64)(i+1)] = game
+
+    if err := initSetupRuleIds(db, game); err != nil {
+      return err
+    }
   }
+  return nil
 }
 
 var sessions []*session.Session
@@ -282,7 +308,7 @@ func main() {
   }
 
   initPlayerData(db)
-  initGameData()
+  initGameData(db)
   initSessionData()
 
   var origin string
