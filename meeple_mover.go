@@ -181,6 +181,23 @@ func storeSessionPlayerAssociations(db *sql.DB, session_id int, player_ids []int
   return nil
 }
 
+func storeSetupSteps(db *sql.DB, session *session.Session) error {
+  for _, step := range session.SetupSteps {
+    var err error
+    if nil == step.GetOwner() {
+      _, err = db.Exec("INSERT INTO setup_steps(session_id, setup_rule_id, player_id, done) VALUES($1, $2, $3, $4)",
+        session.Id, step.GetRule().Id, nil, step.IsDone())
+    } else {
+      _, err = db.Exec("INSERT INTO setup_steps(session_id, setup_rule_id, player_id, done) VALUES($1, $2, $3, $4)",
+        session.Id, step.GetRule().Id, step.GetOwner().Id, step.IsDone())
+    }
+    if nil != err {
+      return errors.New(fmt.Sprintf("Failed to create setup step: %s", err))
+    }
+  }
+  return nil
+}
+
 func fetchPlayersById(db *sql.DB, playerIds []int) ([]*game.Player, error) {
   players := make([]*game.Player, len(playerIds))
 
@@ -235,6 +252,12 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
 
     session := session.NewSession(gameIndex[game_id], players)
     session.Id = (uint)(session_id)
+
+    err = storeSetupSteps(handler.db, session)
+    if nil != err {
+      return http.StatusInternalServerError, nil, nil, err
+    }
+    fmt.Printf("Created %d setup steps\n", len(session.SetupSteps))
 
     session.Print()
 
