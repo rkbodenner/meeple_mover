@@ -229,6 +229,7 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
     if nil != err {
       return http.StatusInternalServerError, nil, nil, errors.New("Failed to create session")
     }
+    fmt.Printf("Created session #%d\n", session_id)
 
     player_ids := make([]int, 0)
     for _, player_id_str := range rq.Session.Players {
@@ -243,12 +244,14 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
     if nil != err {
       return http.StatusInternalServerError, nil, nil, err
     }
+    fmt.Printf("Created %d session-player associations\n", len(player_ids))
 
     var players []*game.Player
     players, err = fetchPlayersById(handler.db, player_ids)
     if nil != err {
       return http.StatusInternalServerError, nil, nil, err
     }
+    fmt.Printf("Found %d matching players\n", len(players))
 
     session := session.NewSession(gameIndex[game_id], players)
     session.Id = (uint)(session_id)
