@@ -79,8 +79,8 @@ func initGameData(db *sql.DB) error {
 var sessions []*session.Session
 var sessionIndex = make(map[uint64]*session.Session)
 
-func initSessionData() {
-  sessions = make([]*session.Session, 2)
+func initSessionData(db *sql.DB) {
+  sessions = make([]*session.Session, 3)
   sessions[0] = session.NewSession(gameCollection.Games[0], players)
   sessions[0].Step(players[0])
   sessions[0].Step(players[1])
@@ -89,10 +89,18 @@ func initSessionData() {
   sessions[1].Step(players[0])
   sessions[1].Step(players[1])
 
-  for i,session := range sessions {
+  for i,session := range sessions[:1] {
     session.Id = (uint)(i+1)
     sessionIndex[(uint64)(i+1)] = session
   }
+
+  session := session.NewSession(nil, make([]*game.Player, 0))
+  sessionRec := record.NewSessionRecord(session)
+  err := sessionRec.Find(db, 37)
+  if nil != err {
+    fmt.Printf("Error finding session 37: %s", err)
+  }
+  sessions[2] = session
 }
 
 
@@ -295,7 +303,7 @@ func main() {
 
   initPlayerData(db)
   initGameData(db)
-  initSessionData()
+  initSessionData(db)
 
   var origin string
   origin = os.Getenv("MEEPLE_MOVER_ORIGIN_URL")
