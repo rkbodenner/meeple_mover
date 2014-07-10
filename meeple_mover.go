@@ -11,6 +11,7 @@ import (
   "strconv"
   _ "github.com/lib/pq"
   "github.com/rcrowley/go-tigertonic"
+  "github.com/rkbodenner/meeple_mover/record"
   "github.com/rkbodenner/parallel_universe/collection"
   "github.com/rkbodenner/parallel_universe/game"
   "github.com/rkbodenner/parallel_universe/session"
@@ -41,6 +42,7 @@ func initPlayerData(db *sql.DB) {
 var gameCollection = collection.NewCollection()
 var gameIndex = make(map[uint64]*game.Game)
 
+// Add IDs to setup rules for a game, if they exist in the DB
 func initSetupRuleIds(db *sql.DB, g *game.Game) error {
   rows, err := db.Query("SELECT id, description FROM setup_rules WHERE game_id = $1", g.Id)
   if nil != err {
@@ -171,33 +173,6 @@ type SessionCreateRequest struct {
   Session SessionCreateHash `json:"session"`
 }
 
-func storeSessionPlayerAssociations(db *sql.DB, session_id int, player_ids []int) error {
-  for _, player_id := range player_ids {
-    _, err := db.Exec("INSERT INTO sessions_players(session_id, player_id) VALUES($1, $2)", session_id, player_id)
-    if nil != err {
-      return errors.New(fmt.Sprintf("Failed to create session's association with a player: %s", err))
-    }
-  }
-  return nil
-}
-
-func storeSetupSteps(db *sql.DB, session *session.Session) error {
-  for _, step := range session.SetupSteps {
-    var err error
-    if nil == step.GetOwner() {
-      _, err = db.Exec("INSERT INTO setup_steps(session_id, setup_rule_id, player_id, done) VALUES($1, $2, $3, $4)",
-        session.Id, step.GetRule().Id, nil, step.IsDone())
-    } else {
-      _, err = db.Exec("INSERT INTO setup_steps(session_id, setup_rule_id, player_id, done) VALUES($1, $2, $3, $4)",
-        session.Id, step.GetRule().Id, step.GetOwner().Id, step.IsDone())
-    }
-    if nil != err {
-      return errors.New(fmt.Sprintf("Failed to create setup step: %s", err))
-    }
-  }
-  return nil
-}
-
 func fetchPlayersById(db *sql.DB, playerIds []int) ([]*game.Player, error) {
   players := make([]*game.Player, len(playerIds))
 
@@ -224,13 +199,6 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
       return http.StatusBadRequest, nil, nil, errors.New("Expected integer game ID")
     }
 
-    var session_id int
-    err = handler.db.QueryRow("INSERT INTO sessions(id, game_id) VALUES(default, $1) RETURNING id", game_id).Scan(&session_id)
-    if nil != err {
-      return http.StatusInternalServerError, nil, nil, errors.New("Failed to create session")
-    }
-    fmt.Printf("Created session #%d\n", session_id)
-
     player_ids := make([]int, 0)
     for _, player_id_str := range rq.Session.Players {
       player_id, err := strconv.ParseInt(player_id_str, 10, 32)
@@ -240,12 +208,6 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
       player_ids = append(player_ids, (int)(player_id))
     }
 
-    err = storeSessionPlayerAssociations(handler.db, session_id, player_ids)
-    if nil != err {
-      return http.StatusInternalServerError, nil, nil, err
-    }
-    fmt.Printf("Created %d session-player associations\n", len(player_ids))
-
     var players []*game.Player
     players, err = fetchPlayersById(handler.db, player_ids)
     if nil != err {
@@ -254,13 +216,11 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
     fmt.Printf("Found %d matching players\n", len(players))
 
     session := session.NewSession(gameIndex[game_id], players)
-    session.Id = (uint)(session_id)
 
-    err = storeSetupSteps(handler.db, session)
+    err = record.NewSessionRecord(session).Create(handler.db)
     if nil != err {
       return http.StatusInternalServerError, nil, nil, err
     }
-    fmt.Printf("Created %d setup steps\n", len(session.SetupSteps))
 
     session.Print()
 
