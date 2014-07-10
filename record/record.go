@@ -5,12 +5,13 @@ import (
   "errors"
   "fmt"
   _ "github.com/lib/pq"
+  "github.com/rkbodenner/parallel_universe/game"
   "github.com/rkbodenner/parallel_universe/session"
 )
 
 type Record interface {
   Create(*sql.DB) error
-  Read(*sql.DB) error
+  Find(db *sql.DB, id int) error
 }
 
 type SessionRecord struct {
@@ -78,6 +79,55 @@ func (rec *SessionRecord) Create(db *sql.DB) error {
     return err
   }
   fmt.Printf("Created %d setup steps\n", n)
+
+  return nil
+}
+
+func (rec *SessionRecord) Find(db *sql.DB, id int) error {
+  var err error
+
+  var gameId int
+  err = db.QueryRow("SELECT game_id FROM sessions WHERE id = $1", id).Scan(&gameId)
+  if nil != err {
+    return err
+  }
+
+  rec.s.Id = (uint)(id)
+
+  if nil == rec.s.Game {
+    game := &game.Game{SetupRules: make([]*game.SetupRule, 0)}
+    gameRec := NewGameRecord(game)
+    err = gameRec.Find(db, gameId)
+    if nil != err {
+      return err
+    }
+    rec.s.Game = game
+  }
+
+  return nil
+}
+
+type GameRecord struct {
+  g *game.Game
+}
+
+func NewGameRecord(g *game.Game) *GameRecord {
+  return &GameRecord{g: g}
+}
+
+func (rec *GameRecord) Find(db *sql.DB, id int) error {
+  var err error
+
+  var name string
+  err = db.QueryRow("SELECT name FROM games WHERE id = $1", id).Scan(&name)
+  if nil != err {
+    return err
+  }
+
+  rec.g.Id = (uint)(id)
+  rec.g.Name = name
+
+  // TODO: Read setup rules
 
   return nil
 }
