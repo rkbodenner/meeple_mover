@@ -285,7 +285,7 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
   step_desc,err := url.QueryUnescape(r.URL.Query().Get("step_desc"))
   for _,step := range session.SetupSteps {
-    if ( step.GetRule().Description == step_desc && step.CanBeOwnedBy(player) ) {
+    if ( step.Rule.Description == step_desc && step.CanBeOwnedBy(player) ) {
       step.Finish()  // FIXME. Should look in request data to see what to change.
       session.Step(player)
       session.Print()  // FIXME

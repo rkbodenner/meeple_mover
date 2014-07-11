@@ -44,12 +44,12 @@ func (rec *SessionRecord) storeSessionPlayerAssociations(db *sql.DB) (int, error
 func (rec *SessionRecord) storeSetupSteps(db *sql.DB) (int, error) {
   for i, step := range rec.s.SetupSteps {
     var err error
-    if nil == step.GetOwner() {
+    if nil == step.Owner {
       _, err = db.Exec("INSERT INTO setup_steps(session_id, setup_rule_id, player_id, done) VALUES($1, $2, $3, $4)",
-        rec.s.Id, step.GetRule().Id, nil, step.IsDone())
+        rec.s.Id, step.Rule.Id, nil, step.Done)
     } else {
       _, err = db.Exec("INSERT INTO setup_steps(session_id, setup_rule_id, player_id, done) VALUES($1, $2, $3, $4)",
-        rec.s.Id, step.GetRule().Id, step.GetOwner().Id, step.IsDone())
+        rec.s.Id, step.Rule.Id, step.Owner.Id, step.Done)
     }
     if nil != err {
       return i, errors.New(fmt.Sprintf("Failed to create setup step: %s", err))
