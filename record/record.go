@@ -94,6 +94,7 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
 
   rec.s.Id = (uint)(id)
 
+  // Eager-load the associated game
   if nil == rec.s.Game {
     game := &game.Game{SetupRules: make([]*game.SetupRule, 0)}
     gameRec := NewGameRecord(game)
@@ -103,6 +104,22 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
     }
     rec.s.Game = game
   }
+
+  // Eager-load the associated players
+  var players = make([]*game.Player, 0)
+  rows, err := db.Query("SELECT p.id, p.name FROM players p INNER JOIN sessions_players sp ON sp.player_id = p.id WHERE sp.session_id = $1", id)
+  if nil != err {
+    return err
+  }
+  for rows.Next() {
+    var name string
+    var id int
+    if err := rows.Scan(&id, &name); err != nil {
+      return err
+    }
+    players = append(players, &game.Player{id, name})
+  }
+  rec.s.Players = players
 
   return nil
 }

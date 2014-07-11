@@ -98,7 +98,7 @@ func initSessionData(db *sql.DB) {
   sessionRec := record.NewSessionRecord(session)
   err := sessionRec.Find(db, 37)
   if nil != err {
-    fmt.Printf("Error finding session 37: %s", err)
+    fmt.Printf("Error finding session 37: %s\n", err)
   }
   sessions[2] = session
 }
