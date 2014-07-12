@@ -308,7 +308,13 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-  db, err := sql.Open("postgres", "user=ralph dbname=meeple_mover sslmode=disable")
+  connectString := "user=ralph dbname=meeple_mover sslmode=disable"
+  herokuConnectString := os.Getenv("HEROKU_POSTGRESQL_SILVER_URL")
+  if herokuConnectString != "" {
+    connectString = fmt.Sprintf("%s?sslmode=verify-full", herokuConnectString)
+  }
+
+  db, err := sql.Open("postgres", connectString)
   if err != nil {
     fmt.Print(err)
   }
