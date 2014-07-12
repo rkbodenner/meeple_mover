@@ -80,7 +80,8 @@ var sessions []*session.Session
 var sessionIndex = make(map[uint64]*session.Session)
 
 func initSessionData(db *sql.DB) {
-  sessions = make([]*session.Session, 3)
+  // Fixture data
+  sessions = make([]*session.Session, 2)
   sessions[0] = session.NewSession(gameCollection.Games[0], players)
   sessions[0].Step(players[0])
   sessions[0].Step(players[1])
@@ -94,13 +95,24 @@ func initSessionData(db *sql.DB) {
     sessionIndex[(uint64)(i+1)] = session
   }
 
+  /*
+  // Select record from DB
   session := session.NewSession(nil, make([]*game.Player, 0))
   sessionRec := record.NewSessionRecord(session)
-  err := sessionRec.Find(db, 37)
+  err := sessionRec.Find(db, 68)
   if nil != err {
-    fmt.Printf("Error finding session 37: %s\n", err)
+    fmt.Printf("Error finding session 68: %s\n", err)
   }
-  sessions[2] = session
+  sessions = append(sessions, session)
+  /*
+  // All records from DB
+  records := &record.SessionRecordList{}
+  err := records.FindAll(db)
+  if nil != err {
+    fmt.Println(err)
+  }
+  sessions = records.List()
+  */
 }
 
 
