@@ -145,6 +145,47 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
   return nil
 }
 
+type SessionRecordList struct {
+  records []*SessionRecord
+}
+
+func (recs *SessionRecordList) List() []*session.Session {
+  sessions := make([]*session.Session, 0)
+  for _,rec := range recs.records {
+    sessions = append(sessions, rec.s)
+  }
+  return sessions
+}
+
+func (recs *SessionRecordList) FindAll(db *sql.DB) error {
+  recs.records = make([]*SessionRecord, 0)
+  ids := make([]int, 0)
+
+  rows, err := db.Query("SELECT id FROM sessions")
+  if nil != err {
+    return err
+  }
+  for rows.Next() {
+    var id int
+    if err := rows.Scan(&id); err != nil {
+      return err
+    }
+    ids = append(ids, id)
+  }
+
+  for _, id := range ids {
+    session := session.NewSession(nil, make([]*game.Player, 0))
+    sessionRec := NewSessionRecord(session)
+    err := sessionRec.Find(db, id)
+    if nil != err {
+      return errors.New(fmt.Sprintf("Error finding session %d: %s", id, err))
+    }
+    recs.records = append(recs.records, sessionRec)
+  }
+
+  return nil
+}
+
 
 type GameRecord struct {
   g *game.Game
