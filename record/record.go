@@ -84,6 +84,9 @@ func (rec *SessionRecord) Create(db *sql.DB) error {
 }
 
 func (rec *SessionRecord) Find(db *sql.DB, id int) error {
+  fmt.Printf("Loading session #%d\n", id)
+  rec.s.Id = (uint)(id)
+
   var err error
 
   var gameId int
@@ -92,18 +95,24 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
     return err
   }
 
-  rec.s.Id = (uint)(id)
-
   // Eager-load the associated game
-  if nil == rec.s.Game {
-    game := &game.Game{SetupRules: make([]*game.SetupRule, 0)}
-    gameRec := NewGameRecord(game)
-    err = gameRec.Find(db, gameId)
-    if nil != err {
-      return err
-    }
-    rec.s.Game = game
+  g := &game.Game{SetupRules: make([]*game.SetupRule, 0)}
+  gameRec := NewGameRecord(g)
+  err = gameRec.Find(db, gameId)
+  if nil != err {
+    return err
   }
+  fmt.Printf("Loaded game #%d\n", gameId)
+  rec.s.Game = g
+
+  // Eager-load the associated game's setup rules
+  rules := NewSetupRuleRecordList()
+  err = rules.FindByGame(db, rec.s.Game)
+  if err != nil {
+    return err
+  }
+  fmt.Printf("Loaded %d setup rules\n", len(rules.List()))
+  rec.s.Game.SetupRules = rules.List()
 
   // Eager-load the associated players
   var players = make([]*game.Player, 0)
@@ -119,13 +128,27 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
     }
     players = append(players, &game.Player{id, name})
   }
+  fmt.Printf("Loaded %d players\n", len(players))
   rec.s.Players = players
+
+  // Eager-load the associated setup steps and associate those in turn according to their belongs-to relationships
+  setupSteps := NewSetupStepRecordList()
+  err = setupSteps.FindBySession(db, rec.s)
+  if nil != err {
+    return err
+  }
+  setupSteps.AssociatePlayers(rec.s.Players)
+  setupSteps.AssociateRules(rec.s.Game.SetupRules)
+  fmt.Printf("Loaded %d setup steps\n", len(setupSteps.List()))
+  rec.s.SetupSteps = setupSteps.List()
 
   return nil
 }
 
+
 type GameRecord struct {
   g *game.Game
+  // TODO: ruleIds []int
 }
 
 func NewGameRecord(g *game.Game) *GameRecord {
@@ -144,7 +167,126 @@ func (rec *GameRecord) Find(db *sql.DB, id int) error {
   rec.g.Id = (uint)(id)
   rec.g.Name = name
 
-  // TODO: Read setup rules
+  return nil
+}
 
+
+type SetupRuleRecord struct {
+  Rule *game.SetupRule
+  // TODO DependencyIds []int
+}
+
+type SetupRuleRecordList struct {
+  records []*SetupRuleRecord
+}
+
+func NewSetupRuleRecordList() *SetupRuleRecordList {
+  return &SetupRuleRecordList{make([]*SetupRuleRecord, 0)}
+}
+
+func (recs *SetupRuleRecordList) List() []*game.SetupRule {
+  steps := make([]*game.SetupRule, 0)
+  for _,rec := range recs.records {
+    steps = append(steps, rec.Rule)
+  }
+  return steps
+}
+
+func (rules *SetupRuleRecordList) FindByGame(db *sql.DB, g *game.Game) error {
+  rules.records = make([]*SetupRuleRecord, 0)
+
+  rows, err := db.Query("SELECT id, description, each_player FROM setup_rules WHERE game_id = $1", g.Id)
+  if nil != err {
+    return err
+  }
+  for rows.Next() {
+    rule := &game.SetupRule{}
+    record := &SetupRuleRecord{Rule: rule}
+    var eachPlayer bool
+    if err := rows.Scan(&record.Rule.Id, &record.Rule.Description, &eachPlayer); nil != err {
+      return err
+    }
+    if eachPlayer {
+      record.Rule.Arity = "Each player"
+    } else {
+      record.Rule.Arity = "Once"
+    }
+    rules.records = append(rules.records, record)
+  }
+
+  return nil
+}
+
+
+type SetupStepRecord struct {
+  Step *game.SetupStep
+  RuleId int
+  OwnerId sql.NullInt64
+}
+
+type SetupStepRecordList struct {
+  records []*SetupStepRecord
+}
+
+func NewSetupStepRecordList() *SetupStepRecordList {
+  return &SetupStepRecordList{make([]*SetupStepRecord, 0)}
+}
+
+func (recs *SetupStepRecordList) List() []*game.SetupStep {
+  steps := make([]*game.SetupStep, 0)
+  for _,rec := range recs.records {
+    steps = append(steps, rec.Step)
+  }
+  return steps
+}
+
+func (recs *SetupStepRecordList) SetRecords(records []*SetupStepRecord) {
+  recs.records = records
+}
+
+func (recs *SetupStepRecordList) FindBySession(db *sql.DB, s *session.Session) error {
+  recs.records = make([]*SetupStepRecord, 0)
+
+  rows, err := db.Query("SELECT setup_rule_id, player_id, done FROM setup_steps WHERE session_id = $1", s.Id)
+  if nil != err {
+    return err
+  }
+  for rows.Next() {
+    step := &game.SetupStep{}
+    record := &SetupStepRecord{Step: step}
+    if err := rows.Scan(&record.RuleId, &record.OwnerId, &record.Step.Done); nil != err {
+      return err
+    }
+    recs.records = append(recs.records, record)
+  }
+
+  return nil
+}
+
+func (recs *SetupStepRecordList) AssociatePlayers(players []*game.Player) error {
+  for _, rec := range recs.records {
+    if !rec.OwnerId.Valid {
+      rec.Step.Owner = nil
+      continue
+    }
+    for _, player := range players {
+      if player.Id == (int)(rec.OwnerId.Int64) {
+        rec.Step.Owner = player
+        break
+      }
+    }
+  }
+  return nil
+}
+
+func (recs *SetupStepRecordList) AssociateRules(rules []*game.SetupRule) error {
+  for _, rec := range recs.records {
+    for _, rule := range rules {
+      if rule.Id == rec.RuleId {
+        rec.Step.Rule = rule
+        break
+      }
+    }
+  }
   return nil
 }
