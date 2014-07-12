@@ -317,6 +317,8 @@ func main() {
   db, err := sql.Open("postgres", connectString)
   if err != nil {
     fmt.Print(err)
+  } else {
+    fmt.Println("Connected to database")
   }
 
   initPlayerData(db)
