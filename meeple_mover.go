@@ -311,7 +311,7 @@ func main() {
   connectString := "user=ralph dbname=meeple_mover sslmode=disable"
   herokuConnectString := os.Getenv("HEROKU_POSTGRESQL_SILVER_URL")
   if herokuConnectString != "" {
-    connectString = fmt.Sprintf("%s?sslmode=verify-full", herokuConnectString)
+    connectString = herokuConnectString
   }
 
   db, err := sql.Open("postgres", connectString)
