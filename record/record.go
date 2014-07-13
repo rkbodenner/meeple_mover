@@ -261,8 +261,23 @@ func (rules *SetupRuleRecordList) FindByGame(db *sql.DB, g *game.Game) error {
 
 type SetupStepRecord struct {
   Step *game.SetupStep
+  SessionId int
+  // TODO: These are just a cache so we can associate objects we create elsewhere
   RuleId int
   OwnerId sql.NullInt64
+}
+
+// Only the 'done' field is updatable, since the rest constitute the unique primary key
+func (rec *SetupStepRecord) Update(db *sql.DB) error {
+  var err error
+  if nil == rec.Step.Owner {
+    _, err = db.Exec("UPDATE setup_steps SET done = $1 WHERE session_id = $2 AND setup_rule_id = $3 AND player_id IS NULL",
+      rec.Step.Done, rec.SessionId, rec.Step.Rule.Id)
+  } else {
+    _, err = db.Exec("UPDATE setup_steps SET done = $1 WHERE session_id = $2 AND setup_rule_id = $3 AND player_id = $4",
+      rec.Step.Done, rec.SessionId, rec.Step.Rule.Id, rec.Step.Owner.Id)
+  }
+  return err
 }
 
 type SetupStepRecordList struct {

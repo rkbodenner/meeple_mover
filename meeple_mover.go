@@ -272,7 +272,9 @@ func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   }
 }
 
-type StepHandler struct{}
+type StepHandler struct{
+  db *sql.DB
+}
 func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   session_id_str := r.URL.Query().Get("session_id")
   session_id, err := strconv.ParseUint(session_id_str, 10, 64)
@@ -302,6 +304,14 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   for _,step := range session.SetupSteps {
     if ( step.Rule.Description == step_desc && step.CanBeOwnedBy(player) ) {
       step.Finish()  // FIXME. Should look in request data to see what to change.
+
+      rec := &record.SetupStepRecord{Step: step, SessionId: (int)(session.Id)}
+      err := rec.Update(h.db)
+      if nil != err {
+        // FIXME: Revert to the previous state if we can't save.
+        http.Error(w, fmt.Sprintf("Error saving update to step: %s", err), http.StatusInternalServerError)
+        return
+      }
       session.Step(player)
       session.Print()
       return
@@ -343,7 +353,7 @@ func main() {
   mux.Handle("GET", "/sessions", cors.Build(SessionsHandler{}))
   mux.Handle("POST", "/sessions", cors.Build(tigertonic.Marshaled(SessionCreateHandler{db}.marshalFunc())))
   mux.Handle("GET", "/sessions/{session_id}", cors.Build(SessionHandler{}))
-  mux.Handle("PUT", "/sessions/{session_id}/players/{player_id}/steps/{step_desc}", cors.Build(StepHandler{}))
+  mux.Handle("PUT", "/sessions/{session_id}/players/{player_id}/steps/{step_desc}", cors.Build(StepHandler{db}))
 
   var port string
   port = os.Getenv("PORT")
