@@ -64,6 +64,14 @@ SELECT pg_catalog.setval('players_id_seq', 2, true);
 
 INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (1, 1, 'Draw 3x3 grid', false);
 INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (2, 1, 'Choose X or O', true);
+INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (3, 2, 'Create Forbidden Island', false);
+INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (4, 2, 'Place the treasures', false);
+INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (5, 2, 'Divide the cards', false);
+INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (6, 2, 'The island starts to sink', false);
+INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (7, 2, 'Deal Adventurer cards', false);
+INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (8, 2, 'Place Adventurer pawn', true);
+INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (9, 2, 'Hand out Treasure deck cards', false);
+INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (10, 2, 'Set the water level', false);
 
 
 --
@@ -76,7 +84,7 @@ INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (2, 1, 'C
 -- Name: setup_rules_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('setup_rules_id_seq', 2, true);
+SELECT pg_catalog.setval('setup_rules_id_seq', 10, true);
 
 
 --
