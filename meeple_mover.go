@@ -236,6 +236,7 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
     fmt.Printf("Found %d matching players\n", len(players))
 
     session := session.NewSession(gameIndex[game_id], players)
+    session.StepAllPlayers()
 
     err = record.NewSessionRecord(session).Create(handler.db)
     if nil != err {
