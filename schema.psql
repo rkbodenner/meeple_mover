@@ -182,6 +182,17 @@ ALTER SEQUENCE setup_rules_id_seq OWNED BY setup_rules.id;
 
 
 --
+-- Name: setup_step_assignments; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE setup_step_assignments (
+    session_id integer,
+    player_id integer,
+    setup_rule_id integer
+);
+
+
+--
 -- Name: setup_steps; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -299,6 +310,30 @@ ALTER TABLE ONLY setup_rule_dependencies
 
 ALTER TABLE ONLY setup_rules
     ADD CONSTRAINT setup_rules_game_id_fkey FOREIGN KEY (game_id) REFERENCES games(id);
+
+
+--
+-- Name: setup_step_assignments_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY setup_step_assignments
+    ADD CONSTRAINT setup_step_assignments_player_id_fkey FOREIGN KEY (player_id) REFERENCES players(id);
+
+
+--
+-- Name: setup_step_assignments_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY setup_step_assignments
+    ADD CONSTRAINT setup_step_assignments_session_id_fkey FOREIGN KEY (session_id) REFERENCES sessions(id);
+
+
+--
+-- Name: setup_step_assignments_setup_rule_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY setup_step_assignments
+    ADD CONSTRAINT setup_step_assignments_setup_rule_id_fkey FOREIGN KEY (setup_rule_id) REFERENCES setup_rules(id);
 
 
 --
