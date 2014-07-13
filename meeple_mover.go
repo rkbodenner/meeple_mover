@@ -333,6 +333,7 @@ func main() {
   } else {
     fmt.Println("Connected to database")
   }
+  defer db.Close()
 
   initPlayerData(db)
   initGameData(db)
@@ -363,6 +364,4 @@ func main() {
   }
 
   http.ListenAndServe(fmt.Sprintf(":%s", port), mux)
-
-  db.Close()
 }
