@@ -344,6 +344,7 @@ func main() {
     origin = "http://localhost:8000"
   }
   cors := tigertonic.NewCORSBuilder().AddAllowedOrigins(origin).AddAllowedHeaders("Content-Type")
+  fmt.Printf("Allowed CORS origin %s\n", origin)
 
   mux := tigertonic.NewTrieServeMux()
   mux.Handle("GET", "/games", cors.Build(CollectionHandler{}))
