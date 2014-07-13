@@ -105,16 +105,6 @@ func initSessionData(db *sql.DB) error {
     sessionIndex[(uint64)(i+1)] = session
   }
   */
-  /*
-  // Select record from DB
-  session := session.NewSession(nil, make([]*game.Player, 0))
-  sessionRec := record.NewSessionRecord(session)
-  err := sessionRec.Find(db, 68)
-  if nil != err {
-    fmt.Printf("Error finding session 68: %s\n", err)
-  }
-  sessions = append(sessions, session)
-  */
 
   // All records from DB
   records := &record.SessionRecordList{}

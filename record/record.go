@@ -105,15 +105,6 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
   fmt.Printf("Loaded game #%d\n", gameId)
   rec.s.Game = g
 
-  // Eager-load the associated game's setup rules
-  rules := NewSetupRuleRecordList()
-  err = rules.FindByGame(db, rec.s.Game)
-  if err != nil {
-    return err
-  }
-  fmt.Printf("Loaded %d setup rules\n", len(rules.List()))
-  rec.s.Game.SetupRules = rules.List()
-
   // Eager-load the associated players
   var players = make([]*game.Player, 0)
   rows, err := db.Query("SELECT p.id, p.name FROM players p INNER JOIN sessions_players sp ON sp.player_id = p.id WHERE sp.session_id = $1", id)
@@ -209,6 +200,15 @@ func (rec *GameRecord) Find(db *sql.DB, id int) error {
 
   rec.g.Id = (uint)(id)
   rec.g.Name = name
+
+  // Eager-load the associated game's setup rules
+  rules := NewSetupRuleRecordList()
+  err = rules.FindByGame(db, rec.g)
+  if err != nil {
+    return err
+  }
+  fmt.Printf("Loaded %d setup rules\n", len(rules.List()))
+  rec.g.SetupRules = rules.List()
 
   return nil
 }
