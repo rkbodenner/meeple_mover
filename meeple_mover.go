@@ -38,6 +38,8 @@ func initPlayerData(db *sql.DB) error {
   for _,player := range players {
     playerIndex[(uint64)(player.Id)] = player
   }
+
+  fmt.Printf("Loaded %d players from DB\n", len(players))
   return nil
 }
 
@@ -68,7 +70,9 @@ func initSetupRuleIds(db *sql.DB, g *game.Game) error {
 }
 
 func initGameData(db *sql.DB) error {
-  for i,game := range gameCollection.Games {
+  var games []*game.Game
+  games = gameCollection.Games
+  for i, game := range games {
     game.Id = (uint)(i+1)
     gameIndex[(uint64)(i+1)] = game
 
@@ -76,14 +80,17 @@ func initGameData(db *sql.DB) error {
       return err
     }
   }
+
+  fmt.Printf("Loaded %d games\n", len(games))
   return nil
 }
 
 var sessions []*session.Session
 var sessionIndex = make(map[uint64]*session.Session)
 
-func initSessionData(db *sql.DB) {
+func initSessionData(db *sql.DB) error {
   // Fixture data
+  /*
   sessions = make([]*session.Session, 2)
   sessions[0] = session.NewSession(gameCollection.Games[0], players)
   sessions[0].Step(players[0])
@@ -97,7 +104,7 @@ func initSessionData(db *sql.DB) {
     session.Id = (uint)(i+1)
     sessionIndex[(uint64)(i+1)] = session
   }
-
+  */
   /*
   // Select record from DB
   session := session.NewSession(nil, make([]*game.Player, 0))
@@ -107,15 +114,24 @@ func initSessionData(db *sql.DB) {
     fmt.Printf("Error finding session 68: %s\n", err)
   }
   sessions = append(sessions, session)
-  /*
+  */
+
   // All records from DB
   records := &record.SessionRecordList{}
   err := records.FindAll(db)
   if nil != err {
-    fmt.Println(err)
+    return err
   }
   sessions = records.List()
-  */
+  //*/
+
+  // Update global cache of sessions
+  for _, s := range sessions {
+    sessionIndex[(uint64)(s.Id)] = s
+  }
+
+  fmt.Printf("Loaded %d sessions from DB\n", len(sessions))
+  return nil
 }
 
 
