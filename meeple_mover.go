@@ -12,7 +12,7 @@ import (
   _ "github.com/lib/pq"
   "github.com/rcrowley/go-tigertonic"
   "github.com/rkbodenner/meeple_mover/record"
-  "github.com/rkbodenner/parallel_universe/collection"
+// Fixture data  "github.com/rkbodenner/parallel_universe/collection"
   "github.com/rkbodenner/parallel_universe/game"
   "github.com/rkbodenner/parallel_universe/session"
 )
@@ -43,7 +43,7 @@ func initPlayerData(db *sql.DB) error {
   return nil
 }
 
-var gameCollection = collection.NewCollection()
+var games []*game.Game
 var gameIndex = make(map[uint64]*game.Game)
 
 // Add IDs to setup rules for a game, if they exist in the DB
@@ -70,8 +70,9 @@ func initSetupRuleIds(db *sql.DB, g *game.Game) error {
 }
 
 func initGameData(db *sql.DB) error {
-  var games []*game.Game
-  games = gameCollection.Games
+  /*
+  // Fixture data
+  games = collection.NewCollection().Games
   for i, game := range games {
     game.Id = (uint)(i+1)
     gameIndex[(uint64)(i+1)] = game
@@ -80,8 +81,20 @@ func initGameData(db *sql.DB) error {
       return err
     }
   }
+  */
 
-  fmt.Printf("Loaded %d games\n", len(games))
+  gameRecords := &record.GameRecordList{}
+  err := gameRecords.FindAll(db)
+  if nil != err {
+    return err
+  }
+  games = gameRecords.List()
+
+  for _, game := range games {
+    gameIndex[(uint64)(game.Id)] = game
+  }
+
+  fmt.Printf("Loaded %d games from DB\n", len(games))
   return nil
 }
 
@@ -92,11 +105,11 @@ func initSessionData(db *sql.DB) error {
   // Fixture data
   /*
   sessions = make([]*session.Session, 2)
-  sessions[0] = session.NewSession(gameCollection.Games[0], players)
+  sessions[0] = session.NewSession(games[0], players)
   sessions[0].Step(players[0])
   sessions[0].Step(players[1])
 
-  sessions[1] = session.NewSession(gameCollection.Games[1], players)
+  sessions[1] = session.NewSession(games[1], players)
   sessions[1].Step(players[0])
   sessions[1].Step(players[1])
 
@@ -127,7 +140,7 @@ func initSessionData(db *sql.DB) error {
 
 type CollectionHandler struct{}
 func (h CollectionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-  err := json.NewEncoder(w).Encode(gameCollection)
+  err := json.NewEncoder(w).Encode(games)
   if ( nil != err ) {
     fmt.Fprintln(w, err)
   }
