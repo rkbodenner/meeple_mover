@@ -242,6 +242,8 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
       return http.StatusInternalServerError, nil, nil, err
     }
 
+    sessionIndex[(uint64)(session.Id)] = session
+
     session.Print()
 
     return http.StatusCreated, nil, session, nil
@@ -300,7 +302,7 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     if ( step.Rule.Description == step_desc && step.CanBeOwnedBy(player) ) {
       step.Finish()  // FIXME. Should look in request data to see what to change.
       session.Step(player)
-      session.Print()  // FIXME
+      session.Print()
       return
     }
   }
