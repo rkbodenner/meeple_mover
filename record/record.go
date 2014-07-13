@@ -120,6 +120,7 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
   if nil != err {
     return err
   }
+  defer rows.Close()
   for rows.Next() {
     var name string
     var id int
@@ -165,6 +166,7 @@ func (recs *SessionRecordList) FindAll(db *sql.DB) error {
   if nil != err {
     return err
   }
+  defer rows.Close()
   for rows.Next() {
     var id int
     if err := rows.Scan(&id); err != nil {
@@ -240,6 +242,7 @@ func (rules *SetupRuleRecordList) FindByGame(db *sql.DB, g *game.Game) error {
   if nil != err {
     return err
   }
+  defer rows.Close()
   for rows.Next() {
     rule := &game.SetupRule{}
     record := &SetupRuleRecord{Rule: rule}
@@ -307,6 +310,7 @@ func (recs *SetupStepRecordList) FindBySession(db *sql.DB, s *session.Session) e
   if nil != err {
     return err
   }
+  defer rows.Close()
   for rows.Next() {
     step := &game.SetupStep{}
     record := &SetupStepRecord{Step: step}
