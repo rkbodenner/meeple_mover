@@ -107,15 +107,16 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
 
   // Eager-load the associated players
   var players = make([]*game.Player, 0)
-  rows, err := db.Query("SELECT p.id, p.name FROM players p INNER JOIN sessions_players sp ON sp.player_id = p.id WHERE sp.session_id = $1", id)
+  var playerRows *sql.Rows
+  playerRows, err = db.Query("SELECT p.id, p.name FROM players p INNER JOIN sessions_players sp ON sp.player_id = p.id WHERE sp.session_id = $1", id)
   if nil != err {
     return err
   }
-  defer rows.Close()
-  for rows.Next() {
+  defer playerRows.Close()
+  for playerRows.Next() {
     var name string
     var id int
-    if err := rows.Scan(&id, &name); err != nil {
+    if err := playerRows.Scan(&id, &name); err != nil {
       return err
     }
     players = append(players, &game.Player{id, name})
@@ -133,6 +134,47 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
   setupSteps.AssociateRules(rec.s.Game.SetupRules)
   fmt.Printf("Loaded %d setup steps\n", len(setupSteps.List()))
   rec.s.SetupSteps = setupSteps.List()
+
+  // Eager-load setup step assignments
+  var assignRows *sql.Rows
+  assignRows, err = db.Query("SELECT setup_rule_id, player_id FROM setup_step_assignments WHERE session_id = $1", rec.s.Id)
+  if nil != err {
+    return err
+  }
+  defer assignRows.Close()
+  assignmentCount := 0
+  for assignRows.Next() {
+    var setupRuleId, playerId int
+    if err := assignRows.Scan(&setupRuleId, &playerId); nil != err {
+      return err
+    }
+
+    // Find step that matches
+    var player *game.Player = nil
+    for _, p := range rec.s.Players {
+      if p.Id == playerId {
+        player = p
+        break
+      }
+    }
+    if nil == player {
+      return errors.New(fmt.Sprintf("Error assigning step for rule %d to player %d: No such player\n", setupRuleId, playerId))
+    }
+    var step *game.SetupStep = nil
+    for _, s := range rec.s.SetupSteps {
+      if s.Rule.Id == setupRuleId && s.CanBeOwnedBy(player) {
+        fmt.Printf("Rule #%d (\"%s\") assigned a step to %s\n", s.Rule.Id, s.Rule.Description, player.Name)
+        step = s
+        break
+      }
+    }
+    if nil == step {
+      return errors.New(fmt.Sprintf("Error assigning step for rule %d to player %d: No such step ownable by player\n", setupRuleId, playerId))
+    }
+    rec.s.SetupAssignments.Set(player, step)
+    assignmentCount++
+  }
+  fmt.Printf("Loaded %d setup step assignments\n", assignmentCount)
 
   return nil
 }
