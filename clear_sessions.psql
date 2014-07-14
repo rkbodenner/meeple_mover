@@ -1,0 +1,4 @@
+delete from sessions_players;
+delete from setup_steps;
+delete from setup_step_assignments;
+delete from sessions;
