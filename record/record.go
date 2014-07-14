@@ -320,8 +320,10 @@ func (recs *SetupRuleRecordList) List() []*game.SetupRule {
 
 func (rules *SetupRuleRecordList) FindByGame(db *sql.DB, g *game.Game) error {
   rules.records = make([]*SetupRuleRecord, 0)
+  var err error
 
-  rows, err := db.Query("SELECT id, description, each_player FROM setup_rules WHERE game_id = $1", g.Id)
+  var rows *sql.Rows
+  rows, err = db.Query("SELECT id, description, each_player FROM setup_rules WHERE game_id = $1", g.Id)
   if nil != err {
     return err
   }
@@ -339,6 +341,33 @@ func (rules *SetupRuleRecordList) FindByGame(db *sql.DB, g *game.Game) error {
       record.Rule.Arity = "Once"
     }
     rules.records = append(rules.records, record)
+  }
+
+  // Eager-load dependencies for the rules
+  for _, parentRec := range rules.records {
+    var depsRows *sql.Rows
+    var depCount int = 0
+    depsRows, err = db.Query("SELECT child_id FROM setup_rule_dependencies WHERE parent_id = $1", parentRec.Rule.Id)
+    if nil != err {
+      return err
+    }
+    defer depsRows.Close()
+    for depsRows.Next() {
+      var childId int
+      if err := depsRows.Scan(&childId); nil != err {
+        return err
+      }
+      depCount++
+      for _, childRec := range rules.records {
+        if childRec.Rule.Id == childId {
+          childRec.Rule.Dependencies = append(childRec.Rule.Dependencies, parentRec.Rule)
+          break  // Optimization assumes unique ID
+        }
+      }
+    }
+    if depCount > 0 {
+      fmt.Printf("Loaded %d dependencies on rule #%d\n", depCount, parentRec.Rule.Id)
+    }
   }
 
   return nil
