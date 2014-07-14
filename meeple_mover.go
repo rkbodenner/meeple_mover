@@ -334,7 +334,24 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         http.Error(w, fmt.Sprintf("Error saving update to step: %s", err), http.StatusInternalServerError)
         return
       }
-      session.Step(player)
+
+      nextStep := session.Step(player)
+
+      if nextStep != step && nil != nextStep {
+        lastAssignmentRec := &record.SetupStepAssignmentRecord{session, player, step.Rule}
+        err = lastAssignmentRec.Delete(h.db)
+        if nil != err {
+          http.Error(w, fmt.Sprintf("Error removing assignment of last step: %s", err), http.StatusInternalServerError)
+          return
+        }
+        nextAssignmentRec := &record.SetupStepAssignmentRecord{session, player, nextStep.Rule}
+        err = nextAssignmentRec.Create(h.db)
+        if nil != err {
+          http.Error(w, fmt.Sprintf("Error creating assignment of next step: %s", err), http.StatusInternalServerError)
+          return
+        }
+      }
+
       session.Print()
       return
     }
