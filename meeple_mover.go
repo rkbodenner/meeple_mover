@@ -11,6 +11,7 @@ import (
   "strconv"
   _ "github.com/lib/pq"
   "github.com/rcrowley/go-tigertonic"
+  "github.com/rkbodenner/meeple_mover/go_agent"
   "github.com/rkbodenner/meeple_mover/record"
 // Fixture data  "github.com/rkbodenner/parallel_universe/collection"
   "github.com/rkbodenner/parallel_universe/game"
@@ -360,6 +361,8 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+  go_agent.StartAgent(os.Getenv("NEW_RELIC_LICENSE_KEY"), "meeple_mover")
+
   connectString := "user=ralph dbname=meeple_mover sslmode=disable"
   herokuConnectString := os.Getenv("HEROKU_POSTGRESQL_SILVER_URL")
   if herokuConnectString != "" {
@@ -398,7 +401,7 @@ func main() {
   mux := tigertonic.NewTrieServeMux()
   mux.Handle("GET", "/games", cors.Build(CollectionHandler{}))
   mux.Handle("GET", "/games/{id}", cors.Build(GameHandler{}))
-  mux.Handle("GET", "/players", cors.Build(PlayersHandler{}))
+  mux.Handle("GET", "/players", &go_agent.InstrumentedHandler{Name: "/games", Handler: cors.Build(PlayersHandler{})})
   mux.Handle("GET", "/players/{player_id}", cors.Build(PlayerHandler{}))
   mux.Handle("GET", "/sessions", cors.Build(SessionsHandler{}))
   mux.Handle("POST", "/sessions", cors.Build(tigertonic.Marshaled(SessionCreateHandler{db}.marshalFunc())))
