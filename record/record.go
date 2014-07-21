@@ -234,13 +234,17 @@ func (rec *GameRecord) Find(db *sql.DB, id int) error {
   var err error
 
   var name string
-  err = db.QueryRow("SELECT name FROM games WHERE id = $1", id).Scan(&name)
+  var minPlayers int
+  var maxPlayers int
+  err = db.QueryRow("SELECT name, min_players, max_players FROM games WHERE id = $1", id).Scan(&name, &minPlayers, &maxPlayers)
   if nil != err {
     return err
   }
 
   rec.g.Id = (uint)(id)
   rec.g.Name = name
+  rec.g.MinPlayers = minPlayers
+  rec.g.MaxPlayers = maxPlayers
 
   // Eager-load the associated game's setup rules
   rules := NewSetupRuleRecordList()
