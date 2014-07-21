@@ -265,6 +265,7 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
       return http.StatusInternalServerError, nil, nil, err
     }
 
+    sessions = append(sessions, session)
     sessionIndex[(uint64)(session.Id)] = session
 
     session.Print()
