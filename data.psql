@@ -78,6 +78,11 @@ INSERT INTO setup_rules (id, game_id, description, each_player) VALUES (10, 2, '
 -- Data for Name: setup_rule_dependencies; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+INSERT INTO setup_rule_dependencies (parent_id, child_id) VALUES (3, 6);
+INSERT INTO setup_rule_dependencies (parent_id, child_id) VALUES (5, 6);
+INSERT INTO setup_rule_dependencies (parent_id, child_id) VALUES (5, 7);
+INSERT INTO setup_rule_dependencies (parent_id, child_id) VALUES (5, 9);
+INSERT INTO setup_rule_dependencies (parent_id, child_id) VALUES (7, 8);
 
 
 --
