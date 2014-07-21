@@ -49,7 +49,9 @@ SET default_with_oids = false;
 
 CREATE TABLE games (
     id integer NOT NULL,
-    name text
+    name text,
+    min_players integer NOT NULL,
+    max_players integer NOT NULL
 );
 
 

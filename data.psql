@@ -14,8 +14,8 @@ SET search_path = public, pg_catalog;
 -- Data for Name: games; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO games (id, name) VALUES (1, 'Tic-Tac-Toe');
-INSERT INTO games (id, name) VALUES (2, 'Forbidden Island');
+INSERT INTO games (id, name, min_players, max_players) VALUES (1, 'Tic-Tac-Toe', 2, 2);
+INSERT INTO games (id, name, min_players, max_players) VALUES (2, 'Forbidden Island', 2, 4);
 
 
 --
