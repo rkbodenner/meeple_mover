@@ -257,20 +257,24 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
     }
     fmt.Printf("Found %d matching players\n", len(players))
 
-    session := session.NewSession(gameIndex[game_id], players)
-    session.StepAllPlayers()
+    var _session *session.Session
+    _session, err = session.NewSession(gameIndex[game_id], players)
+    if nil != err {
+      return http.StatusInternalServerError, nil, nil, err
+    }
+    _session.StepAllPlayers()
 
-    err = record.NewSessionRecord(session).Create(handler.db)
+    err = record.NewSessionRecord(_session).Create(handler.db)
     if nil != err {
       return http.StatusInternalServerError, nil, nil, err
     }
 
-    sessions = append(sessions, session)
-    sessionIndex[(uint64)(session.Id)] = session
+    sessions = append(sessions, _session)
+    sessionIndex[(uint64)(_session.Id)] = _session
 
-    session.Print()
+    _session.Print()
 
-    return http.StatusCreated, nil, session, nil
+    return http.StatusCreated, nil, _session, nil
   }
 }
 

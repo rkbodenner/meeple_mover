@@ -209,7 +209,7 @@ func (recs *SessionRecordList) FindAll(db *sql.DB) error {
   }
 
   for _, id := range ids {
-    session := session.NewSession(nil, make([]*game.Player, 0))
+    session := session.NewEmptySession()
     sessionRec := NewSessionRecord(session)
     err := sessionRec.Find(db, id)
     if nil != err {
