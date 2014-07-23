@@ -365,17 +365,23 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-  connectString := "user=ralph dbname=meeple_mover sslmode=disable"
-  herokuConnectString := os.Getenv("HEROKU_POSTGRESQL_SILVER_URL")
-  if herokuConnectString != "" {
+  databaseName := "meeple_mover"
+  if databaseNameOption := os.Getenv("MEEPLE_MOVER_DB_NAME"); databaseNameOption != "" {
+    databaseName = databaseNameOption
+  }
+  connectString := fmt.Sprintf("user=ralph dbname=%s sslmode=disable", databaseName)
+  connectMsg := fmt.Sprintf("Connected to database %s", databaseName)
+
+  if herokuConnectString := os.Getenv("HEROKU_POSTGRESQL_SILVER_URL"); herokuConnectString != "" {
     connectString = herokuConnectString
+    connectMsg = fmt.Sprintf("Connected to Heroku database")
   }
 
   db, err := sql.Open("postgres", connectString)
   if err != nil {
     fmt.Print(err)
   } else {
-    fmt.Println("Connected to database")
+    fmt.Println(connectMsg)
   }
   defer db.Close()
 
