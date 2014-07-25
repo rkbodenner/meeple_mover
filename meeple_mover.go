@@ -12,7 +12,6 @@ import (
   _ "github.com/lib/pq"
   "github.com/rcrowley/go-tigertonic"
   "github.com/rkbodenner/meeple_mover/record"
-// Fixture data  "github.com/rkbodenner/parallel_universe/collection"
   "github.com/rkbodenner/parallel_universe/game"
   "github.com/rkbodenner/parallel_universe/session"
 )
@@ -46,43 +45,7 @@ func initPlayerData(db *sql.DB) error {
 var games []*game.Game
 var gameIndex = make(map[uint64]*game.Game)
 
-// Add IDs to setup rules for a game, if they exist in the DB
-func initSetupRuleIds(db *sql.DB, g *game.Game) error {
-  rows, err := db.Query("SELECT id, description FROM setup_rules WHERE game_id = $1", g.Id)
-  if nil != err {
-     return err
-  }
-  defer rows.Close()
-  for rows.Next() {
-    var id int
-    var description string
-    if err := rows.Scan(&id, &description); nil != err {
-      return err
-    }
-    for _, rule := range g.SetupRules {
-      if rule.Description == description {
-        rule.Id = id
-        break
-      }
-    }
-  }
-  return nil
-}
-
 func initGameData(db *sql.DB) error {
-  /*
-  // Fixture data
-  games = collection.NewCollection().Games
-  for i, game := range games {
-    game.Id = (uint)(i+1)
-    gameIndex[(uint64)(i+1)] = game
-
-    if err := initSetupRuleIds(db, game); err != nil {
-      return err
-    }
-  }
-  */
-
   gameRecords := &record.GameRecordList{}
   err := gameRecords.FindAll(db)
   if nil != err {
@@ -102,31 +65,12 @@ var sessions []*session.Session
 var sessionIndex = make(map[uint64]*session.Session)
 
 func initSessionData(db *sql.DB) error {
-  // Fixture data
-  /*
-  sessions = make([]*session.Session, 2)
-  sessions[0] = session.NewSession(games[0], players)
-  sessions[0].Step(players[0])
-  sessions[0].Step(players[1])
-
-  sessions[1] = session.NewSession(games[1], players)
-  sessions[1].Step(players[0])
-  sessions[1].Step(players[1])
-
-  for i,session := range sessions[:1] {
-    session.Id = (uint)(i+1)
-    sessionIndex[(uint64)(i+1)] = session
-  }
-  */
-
-  // All records from DB
   records := &record.SessionRecordList{}
   err := records.FindAll(db)
   if nil != err {
     return err
   }
   sessions = records.List()
-  //*/
 
   // Update global cache of sessions
   for _, s := range sessions {
