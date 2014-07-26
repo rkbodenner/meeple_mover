@@ -344,6 +344,7 @@ func (rules *SetupRuleRecordList) FindByGame(db *sql.DB, g *game.Game) error {
     } else {
       record.Rule.Arity = "Once"
     }
+    record.Rule.Details = game.IPSUM
     rules.records = append(rules.records, record)
   }
 
