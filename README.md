@@ -20,7 +20,9 @@ Web service backing [goboard](https://github.com/rkbodenner/goboard), an app for
 ### Create Heroku app
 `heroku create -b https://github.com/kr/heroku-buildpack-go.git`
 
-### Tell it where to find goboard, for CORS purposes
+### Tell it where to find goboard
+This will let the service set the HTTP headers that browsers require to allow Cross-Origin Resource Sharing (CORS):
+
 `heroku config:set MEEPLE_MOVER_ORIGIN_URL=http://example.com`
 
 ### Initialize data
@@ -49,4 +51,5 @@ It's useful to create a test database with fixture data in order to run integrat
 2. `psql -f data.psql`
 
 Start meeple_mover with this database by setting an environment variable:
-   MEEPLE_MOVER_DB_NAME go run meeple_mover.go
+
+`MEEPLE_MOVER_DB_NAME go run meeple_mover.go`
