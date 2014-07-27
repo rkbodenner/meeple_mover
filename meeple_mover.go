@@ -138,6 +138,25 @@ func (h PlayerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   }
 }
 
+type PlayerCreateRequest struct {
+  Player game.Player `json:"player"`
+}
+
+type PlayerCreateHandler struct{
+  db *sql.DB
+}
+func (handler PlayerCreateHandler) marshalFunc() (func(*url.URL, http.Header, *PlayerCreateRequest) (int, http.Header, *game.Player, error)) {
+  return func(u *url.URL, h http.Header, rq *PlayerCreateRequest) (int, http.Header, *game.Player, error) {
+    err := handler.db.QueryRow("INSERT INTO players(id, name) VALUES(default, $1) RETURNING id", rq.Player.Name).Scan(&rq.Player.Id)
+    if nil != err {
+      return http.StatusInternalServerError, nil, nil, errors.New("Could not create player in database")
+    }
+
+    fmt.Printf("Created player #%d: %s\n", rq.Player.Id, rq.Player.Name)
+    return http.StatusCreated, nil, &rq.Player, nil
+  }
+}
+
 type SessionsHandler struct{}
 func (h SessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   err := json.NewEncoder(w).Encode(sessions)
@@ -355,6 +374,7 @@ func main() {
   mux.Handle("GET", "/games/{id}", cors.Build(GameHandler{}))
   mux.Handle("GET", "/players", cors.Build(PlayersHandler{}))
   mux.Handle("GET", "/players/{player_id}", cors.Build(PlayerHandler{}))
+  mux.Handle("POST", "/players", cors.Build(tigertonic.Marshaled(PlayerCreateHandler{db}.marshalFunc())))
   mux.Handle("GET", "/sessions", cors.Build(SessionsHandler{}))
   mux.Handle("POST", "/sessions", cors.Build(tigertonic.Marshaled(SessionCreateHandler{db}.marshalFunc())))
   mux.Handle("GET", "/sessions/{session_id}", cors.Build(SessionHandler{}))
