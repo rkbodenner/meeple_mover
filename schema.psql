@@ -160,7 +160,8 @@ CREATE TABLE setup_rules (
     id integer NOT NULL,
     game_id integer,
     description text,
-    each_player boolean
+    each_player boolean,
+    details text
 );
 
 
