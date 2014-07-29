@@ -13,6 +13,11 @@ type SetupRuleRecord struct {
   // TODO DependencyIds []int
 }
 
+func (rec *SetupRuleRecord) Create(db *sql.DB) error {
+  fmt.Println("Not actually creating a setup rule in the DB")
+  return nil
+}
+
 type SetupRuleRecordList struct {
   records []*SetupRuleRecord
 }
