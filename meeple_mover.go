@@ -145,6 +145,9 @@ func (handler PlayerCreateHandler) marshalFunc() (func(*url.URL, http.Header, *P
       return http.StatusInternalServerError, nil, nil, errors.New("Could not create player in database")
     }
 
+    players = append(players, &rq.Player)
+    playerIndex[(uint64)(rq.Player.Id)] = &rq.Player
+
     fmt.Printf("Created player #%d: %s\n", rq.Player.Id, rq.Player.Name)
     return http.StatusCreated, nil, &rq.Player, nil
   }
