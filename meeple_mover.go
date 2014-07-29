@@ -20,19 +20,12 @@ var players = make([]*game.Player, 0)
 var playerIndex = make(map[uint64]*game.Player)
 
 func initPlayerData(db *sql.DB) error {
-  rows, err := db.Query("SELECT * FROM players")
+  playerRecords := &record.PlayerRecordList{}
+  err := playerRecords.FindAll(db)
   if nil != err {
     return err
   }
-  defer rows.Close()
-  for rows.Next() {
-    var name string
-    var id int
-    if err := rows.Scan(&id, &name); err != nil {
-      return err
-    }
-    players = append(players, &game.Player{id, name})
-  }
+  players = playerRecords.List()
 
   for _,player := range players {
     playerIndex[(uint64)(player.Id)] = player
