@@ -10,7 +10,6 @@ import (
 
 type SetupRuleRecord struct {
   Rule *game.SetupRule
-  // TODO DependencyIds []int
 }
 
 func (rec *SetupRuleRecord) Create(db *sql.DB) error {
@@ -39,7 +38,7 @@ func (rules *SetupRuleRecordList) FindByGame(db *sql.DB, g *game.Game) error {
   var err error
 
   var rows *sql.Rows
-  rows, err = db.Query("SELECT id, description, each_player FROM setup_rules WHERE game_id = $1", g.Id)
+  rows, err = db.Query("SELECT id, description, each_player, details FROM setup_rules WHERE game_id = $1", g.Id)
   if nil != err {
     return err
   }
@@ -48,7 +47,8 @@ func (rules *SetupRuleRecordList) FindByGame(db *sql.DB, g *game.Game) error {
     rule := &game.SetupRule{}
     record := &SetupRuleRecord{Rule: rule}
     var eachPlayer bool
-    if err := rows.Scan(&record.Rule.Id, &record.Rule.Description, &eachPlayer); nil != err {
+    var details sql.NullString
+    if err := rows.Scan(&record.Rule.Id, &record.Rule.Description, &eachPlayer, &details); nil != err {
       return err
     }
     if eachPlayer {
@@ -56,7 +56,11 @@ func (rules *SetupRuleRecordList) FindByGame(db *sql.DB, g *game.Game) error {
     } else {
       record.Rule.Arity = "Once"
     }
-    record.Rule.Details = game.IPSUM
+    if details.Valid {
+      record.Rule.Details = details.String
+    } else {
+      record.Rule.Details = ""
+    }
     rules.records = append(rules.records, record)
   }
 
