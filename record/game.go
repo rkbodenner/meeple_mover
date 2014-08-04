@@ -16,6 +16,14 @@ func NewGameRecord(g *game.Game) *GameRecord {
   return &GameRecord{g}
 }
 
+func NewEmptyGameRecord() *GameRecord {
+  return &GameRecord{
+    &game.Game{
+      SetupRules: make([]*game.SetupRule, 0),
+    },
+  }
+}
+
 func (rec *GameRecord) Find(db *sql.DB, id int) error {
   var err error
 
@@ -35,6 +43,40 @@ func (rec *GameRecord) Find(db *sql.DB, id int) error {
   // Eager-load the associated game's setup rules
   rules := NewSetupRuleRecordList()
   err = rules.FindByGame(db, rec.Game)
+  if err != nil {
+    return err
+  }
+  fmt.Printf("Loaded %d setup rules\n", len(rules.List()))
+  rec.Game.SetupRules = rules.List()
+
+  return nil
+}
+
+func (rec *GameRecord) FindByName(db *sql.DB, name string) error {
+  var err error
+
+  var id int
+  var minPlayers int
+  var maxPlayers int
+  err = db.QueryRow("SELECT id, min_players, max_players FROM games WHERE name = $1", name).Scan(&id, &minPlayers, &maxPlayers)
+  if nil != err {
+    return err
+  }
+
+  rec.Game.Id = (uint)(id)
+  rec.Game.Name = name
+  rec.Game.MinPlayers = minPlayers
+  rec.Game.MaxPlayers = maxPlayers
+
+  // Eager-load the associated game's setup rules
+  rec.findAssociations(db)
+
+  return nil
+}
+
+func (rec *GameRecord) findAssociations(db *sql.DB) error {
+  rules := NewSetupRuleRecordList()
+  err := rules.FindByGame(db, rec.Game)
   if err != nil {
     return err
   }
