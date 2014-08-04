@@ -10,10 +10,24 @@ import (
 
 type SetupRuleRecord struct {
   Rule *game.SetupRule
+  Game *game.Game
 }
 
 func (rec *SetupRuleRecord) Create(db *sql.DB) error {
-  fmt.Println("Not actually creating a setup rule in the DB")
+  err := db.QueryRow("INSERT INTO setup_rules(id, game_id, description, each_player, details) VALUES(default, $1, $2, $3, $4) RETURNING id",
+    rec.Game.Id, rec.Rule.Description, "Each player" == rec.Rule.Arity, rec.Rule.Details).Scan(&rec.Rule.Id)
+  if nil != err {
+    return err
+  }
+
+  for _, dep := range rec.Rule.Dependencies {
+    _, err = db.Exec("INSERT INTO setup_rule_dependencies(parent_id, child_id) VALUES($1, $2)",
+      dep.Id, rec.Rule.Id)
+    if nil != err {
+      return err
+    }
+  }
+
   return nil
 }
 

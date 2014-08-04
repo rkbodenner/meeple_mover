@@ -52,7 +52,7 @@ func (rec *GameRecord) Create(db *sql.DB) error {
   }
 
   for _, rule := range rec.Game.SetupRules {
-    ruleRec := &SetupRuleRecord{rule}
+    ruleRec := &SetupRuleRecord{Rule: rule, Game: rec.Game}
     err = ruleRec.Create(db)
     if nil != err {
       return err
