@@ -41,13 +41,7 @@ func (rec *GameRecord) Find(db *sql.DB, id int) error {
   rec.Game.MaxPlayers = maxPlayers
 
   // Eager-load the associated game's setup rules
-  rules := NewSetupRuleRecordList()
-  err = rules.FindByGame(db, rec.Game)
-  if err != nil {
-    return err
-  }
-  fmt.Printf("Loaded %d setup rules\n", len(rules.List()))
-  rec.Game.SetupRules = rules.List()
+  rec.findAssociations(db)
 
   return nil
 }
