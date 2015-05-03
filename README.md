@@ -50,6 +50,6 @@ It's useful to create a test database with fixture data in order to run integrat
 1. `psql -f schema-test.psql`
 2. `psql -f data.psql`
 
-Start meeple_mover with this database by setting an environment variable:
+Start the server with this database by setting an environment variable:
 
-`MEEPLE_MOVER_DB_NAME go run meeple_mover.go`
+`MEEPLE_MOVER_DB_NAME=meeple_mover_test go run meeple_mover.go`
