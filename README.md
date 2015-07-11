@@ -28,14 +28,13 @@ This will let the service set the HTTP headers that browsers require to allow Cr
 ### Initialize data
 Copy the contents of your local DB to Heroku:
 
-`heroku pg:push $LOCAL_DB_NAME $HEROKU_DB_NAME::$HEROKU_DB_COLOR`
+`heroku pg:push $LOCAL_DB_NAME DATABASE_URL`
 
 Where:
-* LOCAL_DB_NAME is the name of your local Postgres database for meeple_mover (default: meeple_mover)
-* HEROKU_APP_NAME is your DB's name on Heroku
-* HEROKU_DB_COLOR is the "color" of the DB on Heroku
+* $LOCAL_DB_NAME is the name of your local Postgres database for meeple_mover (default: meeple_mover)
+* DATABASE_URL is literally that string. It's what the heroku tool craves.
 
-You may have to `heroku pg:reset $HEROKU_DB_NAME::$HEROKU_DB_COLOR`, which blows away all your data on the Heroku DB.
+You may have to `heroku pg:reset DATABASE_URL`, which blows away all your data on the Heroku DB.
 
 ### Deploy
 `git push heroku master`
