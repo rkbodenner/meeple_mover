@@ -346,15 +346,15 @@ func main() {
 
   err = initPlayerData(db)
   if err != nil {
-    fmt.Printf("Error initializing players: %s\n", err)
+    panic(fmt.Sprintf("Error initializing players: %s\n", err))
   }
   err = initGameData(db)
   if err != nil {
-    fmt.Printf("Error initializing games: %s\n", err)
+    panic(fmt.Sprintf("Error initializing games: %s\n", err))
   }
   err = initSessionData(db)
   if err != nil {
-    fmt.Printf("Error initializing sessions: %s\n", err)
+    panic(fmt.Sprintf("Error initializing sessions: %s\n", err))
   }
 
   var origin string
