@@ -7,7 +7,12 @@ import (
 )
 
 type PlayerRecord struct {
-  p *game.Player
+  Player *game.Player
+}
+
+func (playerRec *PlayerRecord) Create(db *sql.DB) error {
+  err := db.QueryRow("INSERT INTO players(id, name) VALUES(default, $1) RETURNING id", playerRec.Player.Name).Scan(&playerRec.Player.Id)
+  return err
 }
 
 type PlayerRecordList struct {
@@ -37,7 +42,7 @@ func (recs *PlayerRecordList) FindAll(db *sql.DB) error {
 func (recs *PlayerRecordList) List() []*game.Player {
   players := make([]*game.Player, 0)
   for _, rec := range recs.records {
-    players = append(players, rec.p)
+    players = append(players, rec.Player)
   }
   return players
 }

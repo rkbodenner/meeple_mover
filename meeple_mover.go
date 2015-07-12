@@ -135,12 +135,13 @@ type PlayerCreateRequest struct {
   Player game.Player `json:"player"`
 }
 
-type PlayerCreateHandler struct{
+type PlayerCreateHandler struct {
   db *sql.DB
 }
 func (handler PlayerCreateHandler) marshalFunc() (func(*url.URL, http.Header, *PlayerCreateRequest) (int, http.Header, *game.Player, error)) {
   return func(u *url.URL, h http.Header, rq *PlayerCreateRequest) (int, http.Header, *game.Player, error) {
-    err := handler.db.QueryRow("INSERT INTO players(id, name) VALUES(default, $1) RETURNING id", rq.Player.Name).Scan(&rq.Player.Id)
+    playerRecord :=  &record.PlayerRecord{&rq.Player}
+    err := playerRecord.Create(handler.db)
     if nil != err {
       return http.StatusInternalServerError, nil, nil, errors.New("Could not create player in database")
     }
