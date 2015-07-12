@@ -16,25 +16,6 @@ import (
   "github.com/rkbodenner/parallel_universe/session"
 )
 
-var players = make([]*game.Player, 0)
-var playerIndex = make(map[uint64]*game.Player)
-
-func initPlayerData(db *sql.DB) error {
-  playerRecords := &record.PlayerRecordList{}
-  err := playerRecords.FindAll(db)
-  if nil != err {
-    return err
-  }
-  players = playerRecords.List()
-
-  for _,player := range players {
-    playerIndex[(uint64)(player.Id)] = player
-  }
-
-  fmt.Printf("Loaded %d players from DB\n", len(players))
-  return nil
-}
-
 var games []*game.Game
 var gameIndex = make(map[uint64]*game.Game)
 
@@ -103,15 +84,27 @@ func (h GameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   }
 }
 
-type PlayersHandler struct{}
+type PlayersHandler struct {
+  db *sql.DB
+}
 func (h PlayersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-  err := json.NewEncoder(w).Encode(players)
+  playerRecords := &record.PlayerRecordList{}
+  err := playerRecords.FindAll(h.db)
+  if nil != err {
+    http.Error(w, "Error", http.StatusInternalServerError)
+    return
+  }
+  players := playerRecords.List()
+
+  err = json.NewEncoder(w).Encode(players)
   if ( nil != err ) {
     fmt.Fprintln(w, err)
   }
 }
 
-type PlayerHandler struct{}
+type PlayerHandler struct {
+  db *sql.DB
+}
 func (h PlayerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   player_id_str := r.URL.Query().Get("player_id")
   player_id, err := strconv.ParseUint(player_id_str, 10, 64)
@@ -120,14 +113,17 @@ func (h PlayerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  player, ok := playerIndex[player_id]
-  if ok {
-    err = json.NewEncoder(w).Encode(player)
-    if ( nil != err ) {
-      http.Error(w, "Error", http.StatusInternalServerError)
-    }
-  } else {
-    http.Error(w, "Not found", http.StatusNotFound)
+  player := &game.Player{}
+  playerRecord := &record.PlayerRecord{player}
+  err = playerRecord.Find(h.db, (int)(player_id))
+  if nil != err {
+    http.Error(w, "Player not found", http.StatusNotFound)
+    return
+  }
+
+  err = json.NewEncoder(w).Encode(player)
+  if nil != err {
+    http.Error(w, "Error", http.StatusInternalServerError)
   }
 }
 
@@ -145,9 +141,6 @@ func (handler PlayerCreateHandler) marshalFunc() (func(*url.URL, http.Header, *P
     if nil != err {
       return http.StatusInternalServerError, nil, nil, errors.New("Could not create player in database")
     }
-
-    players = append(players, &rq.Player)
-    playerIndex[(uint64)(rq.Player.Id)] = &rq.Player
 
     fmt.Printf("Created player #%d: %s\n", rq.Player.Id, rq.Player.Name)
     return http.StatusCreated, nil, &rq.Player, nil
@@ -171,9 +164,6 @@ func (h PlayerDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     http.Error(w, "Could not delete player from database", http.StatusInternalServerError)
     return
   }
-
-  // FIXME: This introduces a memory leak. Remove the players/playersIndex cache. 
-  delete(playerIndex, player_id)
 
   fmt.Printf("Deleted player #%d\n", player_id)
 }
@@ -306,8 +296,10 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     http.Error(w, "Player not found", http.StatusNotFound)
     return
   }
-  player, ok := playerIndex[player_id]
-  if !ok {
+  player := &game.Player{}
+  playerRecord := &record.PlayerRecord{player}
+  err = playerRecord.Find(h.db, (int)(player_id))
+  if nil != err {
     http.Error(w, "Player not found", http.StatusNotFound)
     return
   }
@@ -370,10 +362,6 @@ func main() {
   }
   defer db.Close()
 
-  err = initPlayerData(db)
-  if err != nil {
-    panic(fmt.Sprintf("Error initializing players: %s\n", err))
-  }
   err = initGameData(db)
   if err != nil {
     panic(fmt.Sprintf("Error initializing games: %s\n", err))
@@ -394,8 +382,8 @@ func main() {
   mux := tigertonic.NewTrieServeMux()
   mux.Handle("GET", "/games", cors.Build(CollectionHandler{}))
   mux.Handle("GET", "/games/{id}", cors.Build(GameHandler{}))
-  mux.Handle("GET", "/players", cors.Build(PlayersHandler{}))
-  mux.Handle("GET", "/players/{player_id}", cors.Build(PlayerHandler{}))
+  mux.Handle("GET", "/players", cors.Build(PlayersHandler{db}))
+  mux.Handle("GET", "/players/{player_id}", cors.Build(PlayerHandler{db}))
   mux.Handle("POST", "/players", cors.Build(tigertonic.Marshaled(PlayerCreateHandler{db}.marshalFunc())))
   mux.Handle("DELETE", "/players/{player_id}", cors.Build(PlayerDeleteHandler{db}))
   mux.Handle("GET", "/sessions", cors.Build(SessionsHandler{}))
