@@ -15,6 +15,14 @@ func (playerRec *PlayerRecord) Create(db *sql.DB) error {
   return err
 }
 
+func (playerRec *PlayerRecord) Find(db *sql.DB, id int) error {
+  err := db.QueryRow("SELECT name FROM players WHERE id = $1", id).Scan(&playerRec.Player.Name)
+  if nil == err {
+    playerRec.Player.Id = id
+  }
+  return err
+}
+
 func (playerRec *PlayerRecord) Delete(db *sql.DB) error {
   _, err := db.Exec("DELETE FROM players WHERE id=$1", playerRec.Player.Id)
   return err
