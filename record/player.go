@@ -15,6 +15,11 @@ func (playerRec *PlayerRecord) Create(db *sql.DB) error {
   return err
 }
 
+func (playerRec *PlayerRecord) Delete(db *sql.DB) error {
+  _, err := db.Exec("DELETE FROM players WHERE id=$1", playerRec.Player.Id)
+  return err
+}
+
 type PlayerRecordList struct {
   records []*PlayerRecord
 }

@@ -154,6 +154,31 @@ func (handler PlayerCreateHandler) marshalFunc() (func(*url.URL, http.Header, *P
   }
 }
 
+type PlayerDeleteHandler struct {
+  db *sql.DB
+}
+func (h PlayerDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+  player_id_str := r.URL.Query().Get("player_id")
+  player_id, err := strconv.ParseUint(player_id_str, 10, 64)
+  if nil != err {
+    http.Error(w, "Not found", http.StatusNotFound)
+    return
+  }
+
+  playerRecord := &record.PlayerRecord{&game.Player{Id: (int)(player_id)}}
+  err = playerRecord.Delete(h.db)
+  if nil != err {
+    http.Error(w, "Could not delete player from database", http.StatusInternalServerError)
+    return
+  }
+
+  // FIXME: This introduces a memory leak. Remove the players/playersIndex cache. 
+  delete(playerIndex, player_id)
+
+  fmt.Printf("Deleted player #%d\n", player_id)
+}
+
+
 type SessionsHandler struct{}
 func (h SessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   err := json.NewEncoder(w).Encode(sessions)
@@ -372,6 +397,7 @@ func main() {
   mux.Handle("GET", "/players", cors.Build(PlayersHandler{}))
   mux.Handle("GET", "/players/{player_id}", cors.Build(PlayerHandler{}))
   mux.Handle("POST", "/players", cors.Build(tigertonic.Marshaled(PlayerCreateHandler{db}.marshalFunc())))
+  mux.Handle("DELETE", "/players/{player_id}", cors.Build(PlayerDeleteHandler{db}))
   mux.Handle("GET", "/sessions", cors.Build(SessionsHandler{}))
   mux.Handle("POST", "/sessions", cors.Build(tigertonic.Marshaled(SessionCreateHandler{db}.marshalFunc())))
   mux.Handle("GET", "/sessions/{session_id}", cors.Build(SessionHandler{}))
