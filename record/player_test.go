@@ -1,40 +1,38 @@
 package record
 
 import (
-  "fmt"
   "database/sql"
+  "fmt"
+  "os"
   "testing"
   "github.com/rkbodenner/parallel_universe/game"
 )
 
-// These tests must be run on a database with a schema defined in schema.psql, but otherwise empty
+// These tests must be run on a database with the schema defined in schema.psql
 
 var db *sql.DB
 
-// TODO: This is available in Go 1.4
-//func TestMain(m *testing.M) {
-func setup(t* testing.T) {
+func TestMain(m *testing.M) {
   connectString := fmt.Sprintf("user=ralph dbname=%s sslmode=disable", "meeple_mover_test")
 
   var err error
   db, err = sql.Open("postgres", connectString)
   if err != nil {
-    t.Fatal(err)
+    fmt.Fprintf(os.Stderr, "Error opening database: %s", err)
+    os.Exit(1)
   }
 
   _, err = db.Exec("DELETE FROM players")
   if err != nil {
-    t.Fatal(err)
+    fmt.Fprintf(os.Stderr, "Error truncating players table: %s", err)
+    os.Exit(1)
   }
-//  defer db.Close()
+  defer db.Close()
 
-//  os.Exit(m.run())
+  os.Exit(m.Run())
 }
 
 func TestPlayer_Create(t *testing.T) {
-  setup(t)
-  defer db.Close()
-
   bogusId := 0
   player := &game.Player{Id: bogusId, Name: "Bob"}
   playerRecord := &PlayerRecord{player}
@@ -49,9 +47,6 @@ func TestPlayer_Create(t *testing.T) {
 }
 
 func TestPlayer_Find(t *testing.T) {
-  setup(t)
-  defer db.Close()
-
   _, err := db.Exec("INSERT INTO players VALUES(41, 'Joe')")
   if nil != err {
     t.Fatal(err)
@@ -73,9 +68,6 @@ func TestPlayer_Find(t *testing.T) {
 }
 
 func TestPlayer_Delete(t *testing.T) {
-  setup(t)
-  defer db.Close()
-
   _, err := db.Exec("INSERT INTO players VALUES(42, 'Joe')")
   if nil != err {
     t.Fatal(err)
