@@ -21,6 +21,8 @@ import (
 func main() {
   var gameName string
   flag.StringVar(&gameName, "game", "", "Name of the game to store in the database")
+  var databaseName string
+  flag.StringVar(&databaseName, "dbname", "meeple_mover_test", "Name of the database")
   var dryRun bool
   flag.BoolVar(&dryRun, "dry-run", false, "Run without creating any records")
   flag.Parse()
@@ -32,7 +34,7 @@ func main() {
 
   fmt.Printf("Searching for %s...\n", gameName)
 
-  connectString := fmt.Sprintf("user=ralph dbname=meeple_mover_test sslmode=disable")
+  connectString := fmt.Sprintf("user=ralph dbname=%s sslmode=disable", databaseName)
   db, err := sql.Open("postgres", connectString)
   if nil != err {
     fmt.Print(err)
