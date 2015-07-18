@@ -74,7 +74,6 @@ func (rec *GameRecord) findAssociations(db *sql.DB) error {
   if err != nil {
     return err
   }
-  fmt.Printf("Loaded %d setup rules\n", len(rules.List()))
   rec.Game.SetupRules = rules.List()
 
   return nil
@@ -125,7 +124,6 @@ func (recs *GameRecordList) FindAll(db *sql.DB) error {
     if nil != err {
       return errors.New(fmt.Sprintf("Error finding game %d: %s", id, err))
     }
-    fmt.Printf("Loaded game %d\n", gameRec.Game.Id)
     recs.records = append(recs.records, gameRec)
   }
 

@@ -2,7 +2,6 @@ package record
 
 import (
   "database/sql"
-  "fmt"
   _ "github.com/lib/pq"
   "github.com/rkbodenner/parallel_universe/game"
   "github.com/rkbodenner/parallel_universe/session"
@@ -99,9 +98,6 @@ func (rules *SetupRuleRecordList) FindByGame(db *sql.DB, g *game.Game) error {
           break  // Optimization assumes unique ID
         }
       }
-    }
-    if depCount > 0 {
-      fmt.Printf("Loaded %d dependencies on rule #%d\n", depCount, parentRec.Rule.Id)
     }
   }
 

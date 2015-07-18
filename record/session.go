@@ -54,32 +54,27 @@ func (rec *SessionRecord) storeSetupSteps(db *sql.DB) (int, error) {
 }
 
 func (rec *SessionRecord) Create(db *sql.DB) error {
-  var n int
   var err error
 
   err = db.QueryRow("INSERT INTO sessions(id, game_id) VALUES(default, $1) RETURNING id", rec.s.Game.Id).Scan(&rec.s.Id)
   if nil != err {
     return err
   }
-  fmt.Printf("Created session #%d\n", rec.s.Id)
 
-  n, err = rec.storeSessionPlayerAssociations(db)
+  _, err = rec.storeSessionPlayerAssociations(db)
   if nil != err {
     return err
   }
-  fmt.Printf("Created %d session-player associations\n", n)
 
-  n, err = rec.storeSetupSteps(db)
+  _, err = rec.storeSetupSteps(db)
   if nil != err {
     return err
   }
-  fmt.Printf("Created %d setup steps\n", n)
 
   return nil
 }
 
 func (rec *SessionRecord) Find(db *sql.DB, id int) error {
-  fmt.Printf("Loading session #%d\n", id)
   rec.s.Id = (uint)(id)
 
   var err error
@@ -97,7 +92,6 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
   if nil != err {
     return err
   }
-  fmt.Printf("Loaded game #%d\n", gameId)
   rec.s.Game = g
 
   // Eager-load the associated players
@@ -116,7 +110,6 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
     }
     players = append(players, &game.Player{id, name})
   }
-  fmt.Printf("Loaded %d players\n", len(players))
   rec.s.Players = players
 
   // Eager-load the associated setup steps and associate those in turn according to their belongs-to relationships
@@ -127,7 +120,6 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
   }
   setupSteps.AssociatePlayers(rec.s.Players)
   setupSteps.AssociateRules(rec.s.Game.SetupRules)
-  fmt.Printf("Loaded %d setup steps\n", len(setupSteps.List()))
   rec.s.SetupSteps = setupSteps.List()
 
   // Eager-load setup step assignments
@@ -158,7 +150,6 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
     var step *game.SetupStep = nil
     for _, s := range rec.s.SetupSteps {
       if s.Rule.Id == setupRuleId && s.CanBeOwnedBy(player) {
-        fmt.Printf("Rule #%d (\"%s\") assigned a step to %s\n", s.Rule.Id, s.Rule.Description, player.Name)
         step = s
         break
       }
@@ -169,7 +160,6 @@ func (rec *SessionRecord) Find(db *sql.DB, id int) error {
     rec.s.SetupAssignments.Set(player, step)
     assignmentCount++
   }
-  fmt.Printf("Loaded %d setup step assignments\n", assignmentCount)
 
   return nil
 }

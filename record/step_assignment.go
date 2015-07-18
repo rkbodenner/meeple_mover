@@ -2,7 +2,6 @@ package record
 
 import (
   "database/sql"
-  "fmt"
   _ "github.com/lib/pq"
   "github.com/rkbodenner/parallel_universe/game"
   "github.com/rkbodenner/parallel_universe/session"
@@ -20,7 +19,6 @@ func (rec *SetupStepAssignmentRecord) Create(db *sql.DB) error {
   if nil != err {
     return err
   }
-  fmt.Printf("Created step assignment of player #%d for rule #%d\n", rec.Player.Id, rec.Rule.Id)
   return nil
 }
 
@@ -30,6 +28,5 @@ func (rec *SetupStepAssignmentRecord) Delete(db *sql.DB) error {
   if nil != err {
     return err
   }
-  fmt.Printf("Deleted step assignment of player #%d for rule #%d\n", rec.Player.Id, rec.Rule.Id)
   return nil
 }
