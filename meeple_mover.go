@@ -5,6 +5,7 @@ import (
   "encoding/json"
   "errors"
   "fmt"
+  "log"
   "net/http"
   "net/url"
   "os"
@@ -15,6 +16,8 @@ import (
   "github.com/rkbodenner/parallel_universe/game"
   "github.com/rkbodenner/parallel_universe/session"
 )
+
+var glog = log.New(os.Stderr, "", log.Ldate | log.Ltime | log.Lshortfile)
 
 var games []*game.Game
 var gameIndex = make(map[uint64]*game.Game)
@@ -31,7 +34,7 @@ func initGameData(db *sql.DB) error {
     gameIndex[(uint64)(game.Id)] = game
   }
 
-  fmt.Printf("Loaded %d games from DB\n", len(games))
+  glog.Printf("Loaded %d games from DB\n", len(games))
   return nil
 }
 
@@ -51,7 +54,7 @@ func initSessionData(db *sql.DB) error {
     sessionIndex[(uint64)(s.Id)] = s
   }
 
-  fmt.Printf("Loaded %d sessions from DB\n", len(sessions))
+  glog.Printf("Loaded %d sessions from DB\n", len(sessions))
   return nil
 }
 
@@ -142,7 +145,7 @@ func (handler PlayerCreateHandler) marshalFunc() (func(*url.URL, http.Header, *P
       return http.StatusInternalServerError, nil, nil, errors.New("Could not create player in database")
     }
 
-    fmt.Printf("Created player #%d: %s\n", rq.Player.Id, rq.Player.Name)
+    glog.Printf("Created player #%d: %s\n", rq.Player.Id, rq.Player.Name)
     return http.StatusCreated, nil, &rq.Player, nil
   }
 }
@@ -165,7 +168,7 @@ func (h PlayerDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  fmt.Printf("Deleted player #%d\n", player_id)
+  glog.Printf("Deleted player #%d\n", player_id)
 }
 
 
@@ -230,7 +233,7 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
     if nil != err {
       return http.StatusInternalServerError, nil, nil, err
     }
-    fmt.Printf("Found %d matching players\n", len(players))
+    glog.Printf("Found %d matching players\n", len(players))
 
     var _session *session.Session
     _session, err = session.NewSession(gameIndex[game_id], players)
@@ -356,19 +359,19 @@ func main() {
 
   db, err := sql.Open("postgres", connectString)
   if err != nil {
-    fmt.Print(err)
+    glog.Print(err)
   } else {
-    fmt.Println(connectMsg)
+    glog.Println(connectMsg)
   }
   defer db.Close()
 
   err = initGameData(db)
   if err != nil {
-    panic(fmt.Sprintf("Error initializing games: %s\n", err))
+    glog.Panicf("Error initializing games: %s\n", err)
   }
   err = initSessionData(db)
   if err != nil {
-    panic(fmt.Sprintf("Error initializing sessions: %s\n", err))
+    glog.Panicf("Error initializing sessions: %s\n", err)
   }
 
   var origin string
@@ -377,7 +380,7 @@ func main() {
     origin = "http://localhost:8000"
   }
   cors := tigertonic.NewCORSBuilder().AddAllowedOrigins(origin).AddAllowedHeaders("Content-Type")
-  fmt.Printf("Allowed CORS origin %s\n", origin)
+  glog.Printf("Allowed CORS origin %s\n", origin)
 
   mux := tigertonic.NewTrieServeMux()
   mux.Handle("GET", "/games", cors.Build(CollectionHandler{}))
