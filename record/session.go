@@ -53,6 +53,20 @@ func (rec *SessionRecord) storeSetupSteps(db *sql.DB) (int, error) {
   return len(rec.s.SetupSteps), nil
 }
 
+func (rec *SessionRecord) storeSetupStepAssignments(db *sql.DB) (error) {
+  for _, player := range rec.s.Players {
+    step, hasAssignment := rec.s.SetupAssignments.Get(player)
+    if hasAssignment {
+      assignmentRec := &SetupStepAssignmentRecord{rec.s, player, step.Rule}
+      err := assignmentRec.Create(db)
+      if nil != err {
+        return errors.New(fmt.Sprintf("Error creating step assignment: %s", err))
+      }
+    }
+  }
+  return nil
+}
+
 func (rec *SessionRecord) Create(db *sql.DB) error {
   var err error
 
@@ -67,6 +81,11 @@ func (rec *SessionRecord) Create(db *sql.DB) error {
   }
 
   _, err = rec.storeSetupSteps(db)
+  if nil != err {
+    return err
+  }
+
+  err = rec.storeSetupStepAssignments(db)
   if nil != err {
     return err
   }
