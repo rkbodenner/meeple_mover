@@ -233,7 +233,6 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
     if nil != err {
       return http.StatusInternalServerError, nil, nil, err
     }
-    glog.Printf("Found %d matching players\n", len(players))
 
     var _session *session.Session
     _session, err = session.NewSession(gameIndex[game_id], players)
@@ -250,7 +249,9 @@ func (handler SessionCreateHandler) marshalFunc() (func(*url.URL, http.Header, *
     sessions = append(sessions, _session)
     sessionIndex[(uint64)(_session.Id)] = _session
 
-    _session.Print()
+    for _,step := range _session.SetupSteps {
+      glog.Printf("Created session #%d with step %s\n", _session.Id, _session.StepWithAssigneeString(step))
+    }
 
     return http.StatusCreated, nil, _session, nil
   }
@@ -311,6 +312,7 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   for _,step := range session.SetupSteps {
     if ( step.Rule.Description == step_desc && step.CanBeOwnedBy(player) ) {
       step.Finish()  // FIXME. Should look in request data to see what to change.
+      glog.Printf("Finished step %s\n", session.StepWithAssigneeString(step))
 
       rec := &record.SetupStepRecord{Step: step, SessionId: (int)(session.Id)}
       err := rec.Update(h.db)
@@ -321,6 +323,11 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
       }
 
       nextStep := session.Step(player)
+      if step.Equal(nextStep) {
+        glog.Printf("Player %s is done", player)
+      } else {
+        glog.Printf("Assigned step %s\n", session.StepWithAssigneeString(nextStep))
+      }
 
       if nextStep != step && nil != nextStep {
         lastAssignmentRec := &record.SetupStepAssignmentRecord{session, player, step.Rule}
@@ -336,9 +343,7 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
           return
         }
       }
-
-      session.Print()
-      return
+      return  // Found the matching step, so return response
     }
   }
   http.Error(w, "Step not found", http.StatusNotFound)
